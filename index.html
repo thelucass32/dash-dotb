@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>dotb · Performance Dashboard</title>
+<!-- versão corrigida: vendas globais usam Hotmart-Limpo como fonte canônica por produto; Hotmart-PHM só para produtos exclusivos -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Halyard+Display:wght@300;400;500&display=swap" rel="stylesheet">
@@ -1547,6 +1548,11 @@ function sourceSaleFields(r, source){
   const recurrency=sourceRecurrencyValue(r,c);
   return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, status, recurrency};
 }
+function productSourceKey(name){
+  // Normaliza o nome do produto para comparar a mesma oferta entre fontes diferentes.
+  // Ex.: "Formação Full Stack Marketing" e variações de maiúsculas/acentos viram a mesma chave.
+  return normSpaced(name || '') || '__sem_produto__';
+}
 function sourceSaleKey(sale){
   // Transaction ID continua sendo prioridade; quando não existe, usa comprador + data + produto.
   if(sale.txn) return 'txn:'+sale.txn;
@@ -1556,8 +1562,16 @@ function sourceSaleKey(sale){
   else if(sale.buyer) identity='name:'+sale.buyer;
   else identity='anon';
   const d=(sale.date||'').slice(0,10);
-  const p=String(sale.product||'').trim().toLowerCase();
+  const p=productSourceKey(sale.product);
   return identity+'|'+d+'|'+p;
+}
+function getLimpoProductKeys(){
+  const keys=new Set();
+  RAW.hotmart.forEach(r=>{
+    const p=COLS.hotProd ? String(r[COLS.hotProd]||'').trim() : '';
+    if(p) keys.add(productSourceKey(p));
+  });
+  return keys;
 }
 function isUniqueSourceSale(sale){
   // Regra global: só venda única / primeira parcela entra na QTD e no CAC.
@@ -1577,6 +1591,15 @@ function salePassFilters(sale,f){
 }
 function filterGlobalHotmartSales(f){
   const all=[];
+  const limpoProductKeys=getLimpoProductKeys();
+  const skippedFullProducts=new Set();
+
+  // REGRA CANÔNICA:
+  // 1) Hotmart-Limpo é a fonte oficial para produtos que já existem nela.
+  // 2) Hotmart-PHM entra SOMENTE para produtos ausentes na Hotmart-Limpo
+  //    (ex.: Plano Head de Marketing e produtos futuros que ainda não estiverem na aba limpa).
+  // Isso evita o erro de contar Full Stack pela Hotmart-PHM e comparar com o relatório
+  // da Hotmart-Limpo/faturamento, gerando 32 vendas quando a Hotmart mostra 27 transações.
   RAW.hotmart.forEach(r=>{
     const sale=sourceSaleFields(r,'limpo');
     if(!salePassFilters(sale,f)) return;
@@ -1587,21 +1610,27 @@ function filterGlobalHotmartSales(f){
   RAW.hotmartFull.forEach(r=>{
     const sale=sourceSaleFields(r,'full');
     if(!salePassFilters(sale,f)) return;
+    const pKey=productSourceKey(sale.product);
+    if(limpoProductKeys.has(pKey)){
+      if(sale.product) skippedFullProducts.add(sale.product);
+      return;
+    }
     if(!isUniqueSourceSale(sale)) return;
     sale.key=sourceSaleKey(sale);
     all.push(sale);
   });
-  // Dedupe final entre as duas fontes para evitar dupla contagem quando a mesma venda
-  // aparece tanto na Hotmart-Limpo quanto na Hotmart-PHM.
+
   const byKey=new Map();
   all.forEach(sale=>{
     if(!sale.key) return;
     const old=byKey.get(sale.key);
-    // Prioriza Hotmart-Limpo quando houver duplicidade, mas mantém Hotmart-PHM quando
-    // o produto só existir lá, como Plano Head de Marketing.
     if(!old || old.source!=='limpo') byKey.set(sale.key,sale);
   });
-  return [...byKey.values()];
+  const out=[...byKey.values()];
+  if(skippedFullProducts.size){
+    console.log('[dotb] Produtos ignorados da Hotmart-PHM na QTD global porque já existem na Hotmart-Limpo:', [...skippedFullProducts].sort());
+  }
+  return out;
 }
 function countGlobalSales(rows){
   const seen=new Set();
@@ -1680,16 +1709,16 @@ function render(){
   console.log(
     '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
     +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
-    +'  • Vendas únicas finais globais (1ª parcela + chave dedupe): '+vendas+'\n'
+    +'  • Vendas únicas finais globais (fonte canônica + 1ª parcela + dedupe): '+vendas+'\n'
     +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
-    +'  • Linhas pré-dedupe globais (só 1ª parcela/sem recorrência): '+hotSales.length+'\n'
+    +'  • Linhas pré-dedupe globais (fonte canônica + 1ª parcela): '+hotSales.length+'\n'
     +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
     'color:#4dffa7;font-weight:bold'
   );
 
   const prodSales=productSalesSummary(hotSales);
   if(prodSales.length){
-    console.log('%c[dotb] Vendas únicas por produto (regra global; inclui Hotmart-PHM/produtos futuros):','color:#4dffa7;font-weight:bold');
+    console.log('%c[dotb] Vendas únicas por produto (regra global; Hotmart-Limpo + produtos exclusivos Hotmart-PHM):','color:#4dffa7;font-weight:bold');
     console.table(prodSales.map(p=>({Produto:p.produto,'Vendas únicas':p.vendas,'Fonte(s)':[...p.fontes].join(' + ')})));
   }
 
