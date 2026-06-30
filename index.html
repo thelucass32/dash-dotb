@@ -297,7 +297,7 @@ canvas{width:100%!important;}
 
     <!-- KPIs -->
     <div id="kpis" class="kpi-grid">
-      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">vendas únicas (trava por e-mail)</div></div>
+      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">e-mail + data da compra + produto</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Bruto</div><div class="kpi-val"><span class="cur">R$</span><span id="kBruto">—</span></div><div class="kpi-sub">transações únicas + parcelas</div></div>
       <div class="kpi"><div class="kpi-lbl">Investimento</div><div class="kpi-val"><span class="cur">R$</span><span id="kInvest">—</span></div><div class="kpi-sub">mídia paga</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Líquido</div><div class="kpi-val"><span class="cur">R$</span><span id="kLiquido">—</span></div><div class="kpi-sub" id="kLiquidoSub">—</div></div>
@@ -708,10 +708,25 @@ function emailKey(r){
   const p = normPhone(r[COLS.hotPhone]);
   return p ? 'tel:'+p : '';
 }
-// Conta vendas únicas travando por e-mail (não soma a mesma pessoa duas vezes).
+// Conta vendas únicas com CHAVE COMPOSTA: identidade + Order Date + produto.
+// Por que isso? Na Hotmart, uma compra parcelada em N vezes vira N linhas, todas com:
+//   - mesmo email/telefone do comprador
+//   - mesmo Sales History Order Date (data da compra original)
+//   - mesmo produto
+// Diferindo só em Approved Date / Recurrency Number / parcela.
+// Usando essa chave composta, todas essas N linhas colapsam em 1 venda — mesmo se
+// o filtro `isUniqueHotmartSale` falhar por causa do formato da coluna recurrency.
+// É a defesa em camadas: filtra por recurrency E deduplica por chave composta.
 function countUniqueSales(rows){
-  const seen=new Set(); let anon=0;
-  rows.forEach(r=>{ const k=emailKey(r); if(k) seen.add(k); else anon++; });
+  const seen = new Set();
+  let anon = 0;
+  rows.forEach(r=>{
+    const identity = emailKey(r);                                                       // 'mail:x' ou 'tel:y'
+    const orderDate = COLS.hotDate ? String(r[COLS.hotDate]||'').trim() : '';
+    const product   = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
+    if(!identity){ anon++; return; }                                                    // sem id → conta sozinha
+    seen.add(identity + '|' + orderDate + '|' + product);
+  });
   return seen.size + anon;
 }
 function hotStatusGroup(st){
@@ -1092,15 +1107,19 @@ function render(){
       dayData.bruto+=v;
     }
   });
-  // Vendas por dia também travadas por e-mail (mesmo comprador no mesmo dia = 1).
+  // Vendas por dia também usam a chave composta (identidade + Order Date + produto),
+  // pra que parcelas da mesma compra NÃO contem como vendas separadas em nenhum dia.
   const daySaleKeys={};
   hotSales.forEach(r=>{
     const d=hotKpiDate(r);
     if(!d) return;
     const dayData = (byDay[d]=byDay[d]||{invest:0,bruto:0,vendas:0});
-    const k=emailKey(r);
-    if(k){
-      const set=(daySaleKeys[d]=daySaleKeys[d]||new Set());
+    const identity = emailKey(r);
+    const orderDate = COLS.hotDate ? String(r[COLS.hotDate]||'').trim() : '';
+    const product   = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
+    if(identity){
+      const k = identity + '|' + orderDate + '|' + product;
+      const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
       if(!set.has(k)){ set.add(k); dayData.vendas+=1; }
     } else {
       dayData.vendas+=1;
@@ -1124,12 +1143,25 @@ function render(){
   console.log(
     '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
     +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
-    +'  • Vendas únicas (recurrency vazio ou =1): '+vendas+'\n'
+    +'  • Vendas únicas finais (e-mail + Order Date + produto): '+vendas+'\n'
     +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
-    +'  • Linhas de vendas únicas: '+hotSales.length+'\n'
-    +'  • Parcelas ignoradas na qtd: '+(hotRevenue.length - hotSales.length)+' (estimativa por data de receita)',
+    +'  • Linhas pré-dedupe (já filtradas por recurrency): '+hotSales.length+'\n'
+    +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
     'color:#4dffa7;font-weight:bold'
   );
+
+  // Detalhe extra: lista as linhas que foram para a contagem de vendas únicas
+  if(hotSales.length && hotSales.length < 40){
+    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas:','color:#4dffa7');
+    console.table(hotSales.map(r=>({
+      'Order Date': COLS.hotDate ? r[COLS.hotDate] : '',
+      'Approved Date': COLS.hotDateBR ? r[COLS.hotDateBR] : '',
+      'Email': COLS.hotEmail ? r[COLS.hotEmail] : '',
+      'Produto': COLS.hotProd ? r[COLS.hotProd] : '',
+      'Recurrency': COLS.hotRecurrency ? r[COLS.hotRecurrency] : '(coluna não detectada)',
+      'Valor': COLS.hotValue ? r[COLS.hotValue] : ''
+    })));
+  }
 
   // KPIs
   setText('kVendas',fmtN(vendas));
