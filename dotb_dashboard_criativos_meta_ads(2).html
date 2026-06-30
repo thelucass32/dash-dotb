@@ -297,7 +297,7 @@ canvas{width:100%!important;}
 
     <!-- KPIs -->
     <div id="kpis" class="kpi-grid">
-      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">vendas únicas (trava por e-mail)</div></div>
+      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">únicas por Transaction ID</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Bruto</div><div class="kpi-val"><span class="cur">R$</span><span id="kBruto">—</span></div><div class="kpi-sub">transações únicas + parcelas</div></div>
       <div class="kpi"><div class="kpi-lbl">Investimento</div><div class="kpi-val"><span class="cur">R$</span><span id="kInvest">—</span></div><div class="kpi-sub">mídia paga</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Líquido</div><div class="kpi-val"><span class="cur">R$</span><span id="kLiquido">—</span></div><div class="kpi-sub" id="kLiquidoSub">—</div></div>
@@ -408,10 +408,20 @@ canvas{width:100%!important;}
 <script>
 "use strict";
 // ═══ CONFIG ═══
+// ── CONFIGURAÇÃO RECOMENDADA ──────────────────────────────────────────────
+// Cole aqui o ID REAL da planilha (não o de publicação) para usar o endpoint
+// oficial GViz, que é mais rápido e funciona SEM proxy CORS.
+// Como achar: abra a planilha no Google Sheets, olhe a URL:
+//   https://docs.google.com/spreadsheets/d/AQUI_VAI_O_ID/edit#gid=0
+// Cole apenas a parte AQUI_VAI_O_ID (sem aspas extras, sem espaços).
+// Importante: a planilha precisa estar compartilhada como "Qualquer pessoa
+// com o link pode ver".
+const SHEET_ID = '';
+
 const URLS = {
   meta:        'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=1463017033&single=true&output=csv',
-  // Fonte oficial para KPIs, gráfico, produtos e tabela: aba Hotmart-Full (contém coluna de recorrência)
-  hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv',
+  // Fonte oficial para KPIs, gráfico, produtos e tabela: aba Hotmart-Limpo (gid 565168335)
+  hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=565168335&single=true&output=csv',
   phm:         'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=2130889671&single=true&output=csv',
   // Fonte Hotmart específica para o Funil PHM: cruza leads PHM × Plano Head × Full Stack
   hotmartFull: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv'
@@ -438,6 +448,7 @@ const COL_OVERRIDE = {
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
   hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
+  hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
   hotRecurrency:'', // "Sales History Recurrency Number" — PREENCHA aqui se a detecção automática falhar
   hotFullEmail:'', hotFullProd:'', hotFullStatus:'', hotFullPhone:'',
   phmEmail:'', phmPhone:''
@@ -481,30 +492,71 @@ function cleanRows(rows,label){
 }
 
 // ═══ CARREGAMENTO GOOGLE SHEETS ═══
-// Quando o dashboard é aberto direto do computador (file:///...), o navegador bloqueia
-// fetch() para o CSV publicado do Google Sheets por CORS.
-// Por isso, depois das tentativas tradicionais, usamos o endpoint GViz via <script>,
-// que funciona também em arquivo local e evita depender de proxy externo.
+// Estratégias, em ordem:
+//   A. GViz CSV direto (se SHEET_ID preenchido) — sem proxy, mais confiável.
+//   B. URL direto da publicação (funciona se a aba está publicada como CSV).
+//   C. Cascata de proxies CORS (codetabs, allorigins, thingproxy).
+//   D. GViz via <script> (último recurso, evita CORS por completo).
 const PROXIES=[
-  u=>u,
-  u=>'https://corsproxy.io/?url='+encodeURIComponent(u),
-  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)
+  u=>u,                                                                          // direto
+  u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),           // codetabs (free, estável em 2026)
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),                // allorigins (free, instável)
+  u=>'https://thingproxy.freeboard.io/fetch/'+u                                  // thingproxy (limite ~100k/dia)
 ];
+
+// Detecta se o que voltou é CSV de verdade, ou HTML de tela de login/erro.
+function looksLikeCSV(text){
+  if(!text || text.length < 5) return false;
+  const lower = text.toLowerCase().slice(0, 2000);
+  if(lower.includes('<!doctype html') || lower.includes('<html') || lower.includes('<head>')) return false;
+  if(lower.includes('servicelogin') || lower.includes('accounts.google')) return false;
+  return true;
+}
+
 async function fetchCSV(url){
-  for(const p of PROXIES){
+  // ─── Estratégia A: GViz CSV direto via ID real (mais rápido, sem proxy) ───
+  if(SHEET_ID){
     try{
-      const r=await fetch(p(url),{cache:'no-store'});
-      if(r.ok) return await r.text();
-    }catch(e){
-      // Em file:// é esperado cair aqui por CORS. O fallback GViz resolve.
-    }
+      const gid = new URL(url).searchParams.get('gid') || '0';
+      const gvizUrl = 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&gid='+encodeURIComponent(gid);
+      const r = await fetch(gvizUrl, {cache:'no-store'});
+      if(r.ok){
+        const txt = await r.text();
+        if(looksLikeCSV(txt)){
+          console.log('%c[dotb] ✓ GViz CSV direto (gid='+gid+')','color:#89cc72');
+          return txt;
+        }
+      }
+    }catch(e){ /* segue pra próxima estratégia */ }
   }
-  console.warn('[dotb] CSV/proxies bloqueados. Usando fallback Google GViz para:', url);
+
+  // ─── Estratégia B+C: URL direto + cascata de proxies ───
+  for(let i=0; i<PROXIES.length; i++){
+    try{
+      const r = await fetch(PROXIES[i](url), {cache:'no-store'});
+      if(r.ok){
+        const txt = await r.text();
+        if(looksLikeCSV(txt)){
+          if(i===0) console.log('%c[dotb] ✓ Fetch direto OK para gid='+(new URL(url).searchParams.get('gid')||'?'),'color:#89cc72');
+          else console.log('%c[dotb] ✓ Proxy #'+i+' OK para gid='+(new URL(url).searchParams.get('gid')||'?'),'color:#89cc72');
+          return txt;
+        }
+      }
+    }catch(e){ /* tenta próximo */ }
+  }
+
+  // ─── Estratégia D: GViz via <script> (sem CORS) ───
+  console.warn('[dotb] Direto + proxies falharam. Tentando GViz via <script> para:', url);
   return await fetchCSVViaGviz(url);
 }
 function gvizUrlFromPublishedCsv(url){
   const u = new URL(url);
   const gid = u.searchParams.get('gid') || '0';
+  // Se SHEET_ID estiver preenchido, usa o endpoint oficial /d/<ID>/gviz (mais confiável)
+  if(SHEET_ID){
+    return 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json&gid='+encodeURIComponent(gid)+'&_='+Date.now();
+  }
+  // Caso contrário, tenta gviz no endpoint publicado (funciona em algumas planilhas)
   const base = url.replace(/\/pub.*$/,'');
   return base + '/gviz/tq?tqx=out:json&gid=' + encodeURIComponent(gid) + '&_=' + Date.now();
 }
@@ -651,16 +703,41 @@ function hotKpiDate(r){
 // TRAVA POR E-MAIL — chave única do comprador.
 // Usada para contar VENDAS ÚNICAS (mesmo comprador = 1 venda) e gerar o CAC certo.
 // Fallback: telefone. Linha sem e-mail nem telefone conta como 1 (não some).
+// Identidade do comprador para dedupe. Prioridade:
+//   1. Transaction ID (mais robusto — é único por compra; parcelas compartilham)
+//   2. Email
+//   3. Telefone
+//   4. Buyer Name (último recurso, propenso a falsos positivos com nomes comuns)
 function emailKey(r){
+  const txn = COLS.hotTxnId ? String(r[COLS.hotTxnId]||'').trim() : '';
+  if(txn) return 'txn:'+txn;
   const e = COLS.hotEmail ? String(r[COLS.hotEmail]||'').trim().toLowerCase() : '';
   if(e) return 'mail:'+e;
   const p = normPhone(r[COLS.hotPhone]);
-  return p ? 'tel:'+p : '';
+  if(p) return 'tel:'+p;
+  const buyer = COLS.hotBuyer ? String(r[COLS.hotBuyer]||'').trim().toLowerCase() : '';
+  if(buyer) return 'name:'+buyer;
+  return '';
 }
-// Conta vendas únicas travando por e-mail (não soma a mesma pessoa duas vezes).
+// Conta vendas únicas. A chave depende do TIPO de identidade encontrado:
+//   - Transaction ID → ÚNICO POR COMPRA na Hotmart. Usa direto, sem combinar com nada.
+//     Duas linhas com mesmo Transaction = mesma compra (parcelas) → 1 venda.
+//   - Email/Telefone/Buyer Name → combina com data da compra (truncada YYYY-MM-DD) + produto,
+//     pra colapsar parcelas da mesma compra que apareçam com timestamps ligeiramente diferentes.
 function countUniqueSales(rows){
-  const seen=new Set(); let anon=0;
-  rows.forEach(r=>{ const k=emailKey(r); if(k) seen.add(k); else anon++; });
+  const seen = new Set();
+  let anon = 0;
+  rows.forEach(r=>{
+    const identity = emailKey(r);
+    if(!identity){ anon++; return; }
+    // Transaction ID já é único por compra
+    if(identity.startsWith('txn:')){ seen.add(identity); return; }
+    // Outras identidades: combina com data (sem timestamp) + produto
+    const orderDateRaw = COLS.hotDate ? String(r[COLS.hotDate]||'').trim() : '';
+    const orderDate = orderDateRaw.slice(0, 10); // YYYY-MM-DD apenas
+    const product = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
+    seen.add(identity + '|' + orderDate + '|' + product);
+  });
   return seen.size + anon;
 }
 function hotStatusGroup(st){
@@ -755,6 +832,11 @@ function detectColumns(){
   }
   COLS.hotEmail    = colFind(hh,[/sales history buyer email/,/buyer.?email/,/e-?mail/,/email/]);
   COLS.hotPhone    = colFind(hh,[/buyer.?phone/,/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/]);
+  // Transaction ID da Hotmart — IDENTIFICADOR ÚNICO DE COMPRA. Parcelas da mesma compra
+  // compartilham o mesmo Transaction. Usado como prioridade #1 na chave de dedupe.
+  COLS.hotTxnId    = colFind(hh,[/^sales history transaction$/,/sales.?history.?transaction$/,/^transaction$/,/transaction.?id/,/^transa[çc][aã]o$/]);
+  // Buyer Name — fallback de identidade quando não há email/telefone.
+  COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
@@ -809,6 +891,12 @@ function detectColumns(){
   }
 
   console.log('%c[dotb] Colunas detectadas:','color:#89cc72;font-weight:bold', COLS);
+  console.log('%c[dotb] Identidade do comprador na Hotmart-Limpo:','color:#89cc72;font-weight:bold');
+  console.log('  • Transaction ID:', COLS.hotTxnId || '(não detectada)');
+  console.log('  • Buyer Name:    ', COLS.hotBuyer || '(não detectada)');
+  console.log('  • Email:         ', COLS.hotEmail || '(não detectada)');
+  console.log('  • Phone:         ', COLS.hotPhone || '(não detectada)');
+  if(!COLS.hotTxnId && !COLS.hotEmail) console.warn('[dotb] ⚠ Sem Transaction ID nem Email — dedupe vai usar Buyer Name ou cada linha conta sozinha.');
   if(!COLS.hotRecurrency) console.error('[dotb] ERRO CRÍTICO: Coluna de recorrência não detectada!');
   else console.log('[dotb] Coluna de recorrência detectada:', COLS.hotRecurrency);
   console.log('[dotb] Cabeçalhos Meta:', mh);
@@ -1041,19 +1129,26 @@ function render(){
       dayData.bruto+=v;
     }
   });
-  // Vendas por dia também travadas por e-mail (mesmo comprador no mesmo dia = 1).
+  // Vendas por dia também usam a chave de dedupe (Transaction ID se disponível, senão
+  // identidade + data truncada + produto). Mesma lógica do countUniqueSales.
   const daySaleKeys={};
   hotSales.forEach(r=>{
     const d=hotKpiDate(r);
     if(!d) return;
     const dayData = (byDay[d]=byDay[d]||{invest:0,bruto:0,vendas:0});
-    const k=emailKey(r);
-    if(k){
-      const set=(daySaleKeys[d]=daySaleKeys[d]||new Set());
-      if(!set.has(k)){ set.add(k); dayData.vendas+=1; }
+    const identity = emailKey(r);
+    if(!identity){ dayData.vendas+=1; return; }
+    let k;
+    if(identity.startsWith('txn:')){
+      k = identity;
     } else {
-      dayData.vendas+=1;
+      const orderDateRaw = COLS.hotDate ? String(r[COLS.hotDate]||'').trim() : '';
+      const orderDate = orderDateRaw.slice(0, 10);
+      const product = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
+      k = identity + '|' + orderDate + '|' + product;
     }
+    const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
+    if(!set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
   const vendas=countUniqueSales(hotSales);   // VENDAS ÚNICAS travadas por e-mail (CAC correto)
   console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
@@ -1073,12 +1168,29 @@ function render(){
   console.log(
     '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
     +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
-    +'  • Vendas únicas (recurrency vazio ou =1): '+vendas+'\n'
+    +'  • Vendas únicas finais (e-mail + Order Date + produto): '+vendas+'\n'
     +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
-    +'  • Linhas de vendas únicas: '+hotSales.length+'\n'
-    +'  • Parcelas ignoradas na qtd: '+(hotRevenue.length - hotSales.length)+' (estimativa por data de receita)',
+    +'  • Linhas pré-dedupe (já filtradas por recurrency): '+hotSales.length+'\n'
+    +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
     'color:#4dffa7;font-weight:bold'
   );
+
+  // Detalhe extra: lista as linhas que foram para a contagem de vendas únicas
+  if(hotSales.length && hotSales.length < 40){
+    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas (chave dedupe na última coluna):','color:#4dffa7');
+    console.table(hotSales.map(r=>({
+      'Buyer Name': COLS.hotBuyer ? r[COLS.hotBuyer] : '(coluna não detectada)',
+      'Transaction': COLS.hotTxnId ? r[COLS.hotTxnId] : '(coluna não detectada)',
+      'Order Date': COLS.hotDate ? r[COLS.hotDate] : '',
+      'Approved Date': COLS.hotDateBR ? r[COLS.hotDateBR] : '',
+      'Email': COLS.hotEmail ? r[COLS.hotEmail] : '',
+      'Produto': COLS.hotProd ? r[COLS.hotProd] : '',
+      'Status': COLS.hotStatus ? r[COLS.hotStatus] : '',
+      'Recurrency': COLS.hotRecurrency ? r[COLS.hotRecurrency] : '(coluna não detectada)',
+      'Valor': COLS.hotValue ? r[COLS.hotValue] : '',
+      'Chave dedupe': emailKey(r) || '(sem identidade — conta sozinho)'
+    })));
+  }
 
   // KPIs
   setText('kVendas',fmtN(vendas));
