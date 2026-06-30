@@ -549,6 +549,17 @@ function hotKpiDate(r){
   }
   return parseDate(r[COLS.hotDate]) || (COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null);
 }
+// Uma linha entra no período se a data da COMPRA **ou** a de RECEBIMENTO cair na
+// janela. Isso garante que a venda apareça no dia filtrado (KPI) E que o
+// cruzamento criativo×Hotmart (vendas/receita/ROAS) não perca linhas por causa
+// de compra e recebimento caírem em dias diferentes.
+function hotInWindow(r,f){
+  const dO = parseDate(r[COLS.hotDate]);
+  const dR = COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null;
+  const inO = dO && dO>=f.from && dO<=f.to;
+  const inR = dR && dR>=f.from && dR<=f.to;
+  return !!(inO || inR);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TRAVA POR E-MAIL — chave única do comprador.
@@ -896,7 +907,7 @@ function hotPassCommonFilters(r,f){
 // Usa o eixo de data único (hotKpiDate), então o faturamento aparece no mesmo dia da venda.
 function filterHotmartRevenue(f){
   return RAW.hotmart.filter(r=>{
-    const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
+    if(!hotInWindow(r,f)) return false;
     return hotPassCommonFilters(r,f);
   });
 }
@@ -904,7 +915,7 @@ function filterHotmartRevenue(f){
 // (recurrency vazio ou =1). A dedupe por e-mail é feita na contagem (countUniqueSales).
 function filterHotmartSales(f){
   return RAW.hotmart.filter(r=>{
-    const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
+    if(!hotInWindow(r,f)) return false;
     if(!isUniqueHotmartSale(r)) return false; // exclui parcelas/recorrências
     return hotPassCommonFilters(r,f);
   });
