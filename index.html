@@ -417,7 +417,7 @@ body:not(.auth-pending) .login-screen{display:none;}
 
     <!-- KPIs -->
     <div id="kpis" class="kpi-grid">
-      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">1ª parcela + vendas únicas</div></div>
+      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">transações do período</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Bruto</div><div class="kpi-val"><span class="cur">R$</span><span id="kBruto">—</span></div><div class="kpi-sub">transações únicas + parcelas</div></div>
       <div class="kpi"><div class="kpi-lbl">Investimento</div><div class="kpi-val"><span class="cur">R$</span><span id="kInvest">—</span></div><div class="kpi-sub">mídia paga</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Líquido</div><div class="kpi-val"><span class="cur">R$</span><span id="kLiquido">—</span></div><div class="kpi-sub" id="kLiquidoSub">—</div></div>
@@ -516,12 +516,12 @@ body:not(.auth-pending) .login-screen{display:none;}
 
     <!-- BREAKDOWN POR PRODUTO -->
     <div class="section" id="prod-breakdown-sec">
-      <div class="section-head"><h2 class="section-title">Vendas <em>por produto</em></h2><span class="section-tag">Vendas = só 1ª parcela · Faturamento = todas as parcelas</span></div>
+      <div class="section-head"><h2 class="section-title">Vendas <em>por produto</em></h2><span class="section-tag">Vendas = transações do período · Faturamento = todas as parcelas</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
             <th>Produto</th>
-            <th>Vendas (1ª parcela)</th>
+            <th>Vendas</th>
             <th>Faturamento (todas)</th>
             <th>Fonte</th>
           </tr></thead>
@@ -1507,7 +1507,7 @@ function filterHotmartRevenue(f){
 function filterHotmartSales(f){
   return RAW.hotmart.filter(r=>{
     const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
-    // if(!isUniqueHotmartSale(r)) return false; // exclui parcelas/recorrências
+    if(!isUniqueHotmartSale(r)) return false; // exclui parcelas/recorrências
     return hotPassCommonFilters(r,f);
   });
 }
@@ -1577,17 +1577,19 @@ function productSourceKey(name){
   // Ex.: "Formação Full Stack Marketing" e variações de maiúsculas/acentos viram a mesma chave.
   return normSpaced(name || '') || '__sem_produto__';
 }
-function sourceSaleKey(sale){
-  // Transaction ID continua sendo prioridade; quando não existe, usa comprador + data + produto.
-  if(sale.txn) return 'txn:'+sale.txn;
-  let identity = '';
-  if(sale.email) identity='mail:'+sale.email;
-  else if(sale.phone) identity='tel:'+sale.phone;
-  else if(sale.buyer) identity='name:'+sale.buyer;
-  else identity='anon';
+function sourceSaleKey(sale, idx){
+  // NOVA REGRA DE VENDAS:
+  // Vendas deve acompanhar as transações/linhas aprovadas do período.
+  // Por isso NÃO usamos mais Transaction ID sozinho para dedupe global, porque
+  // parcelas/cobranças da mesma compra podem repetir o mesmo Transaction e cairiam
+  // para 1 venda (foi o que fez o dashboard mostrar apenas 14).
+  // A chave abaixo identifica a LINHA do período, mantendo o faturamento separado.
+  const identity = sale.txn || sale.email || sale.phone || sale.buyer || 'anon';
   const d=(sale.date||'').slice(0,10);
   const p=productSourceKey(sale.product);
-  return identity+'|'+d+'|'+p;
+  const rec=(sale.recurrency===null || sale.recurrency===undefined) ? '' : String(sale.recurrency).trim();
+  const v=Number(sale.value||0).toFixed(2);
+  return sale.source+'|'+identity+'|'+d+'|'+p+'|'+sale.status+'|'+rec+'|'+v+'|row:'+(idx ?? '');
 }
 function getLimpoProductKeys(){
   const keys=new Set();
@@ -1618,20 +1620,20 @@ function filterGlobalHotmartSales(f){
   const limpoProductKeys=getLimpoProductKeys();
   const skippedFullProducts=new Set();
 
-  // REGRA CANÔNICA:
-  // 1) Hotmart-Limpo é a fonte oficial para produtos que já existem nela.
-  // 2) Hotmart-PHM entra SOMENTE para produtos ausentes na Hotmart-Limpo
-  //    (ex.: Plano Head de Marketing e produtos futuros que ainda não estiverem na aba limpa).
-  // Isso evita o erro de contar Full Stack pela Hotmart-PHM e comparar com o relatório
-  // da Hotmart-Limpo/faturamento, gerando 32 vendas quando a Hotmart mostra 27 transações.
-  RAW.hotmart.forEach(r=>{
+  // REGRA ATUAL SOLICITADA:
+  // • Vendas = quantidade de transações/linhas aprovadas no mesmo período do filtro.
+  // • NÃO aplica dedupe por Transaction ID/e-mail, porque isso colapsava várias linhas
+  //   em uma única venda e gerava o número 14.
+  // • O faturamento bruto continua vindo de TODAS as parcelas/linhas de receita.
+  // • Hotmart-Limpo segue como fonte canônica; Hotmart-PHM entra apenas para produtos
+  //   que não existem na Hotmart-Limpo, evitando duplicidade de fonte.
+  RAW.hotmart.forEach((r,i)=>{
     const sale=sourceSaleFields(r,'limpo');
     if(!salePassFilters(sale,f)) return;
-    // if(!isUniqueSourceSale(sale)) return; // Contar todas as parcelas como vendas
-    sale.key=sourceSaleKey(sale);
+    sale.key=sourceSaleKey(sale,i);
     all.push(sale);
   });
-  RAW.hotmartFull.forEach(r=>{
+  RAW.hotmartFull.forEach((r,i)=>{
     const sale=sourceSaleFields(r,'full');
     if(!salePassFilters(sale,f)) return;
     const pKey=productSourceKey(sale.product);
@@ -1639,19 +1641,19 @@ function filterGlobalHotmartSales(f){
       if(sale.product) skippedFullProducts.add(sale.product);
       return;
     }
-    // if(!isUniqueSourceSale(sale)) return; // Contar todas as parcelas como vendas
-    sale.key=sourceSaleKey(sale);
+    sale.key=sourceSaleKey(sale,i);
     all.push(sale);
   });
 
-    const out = all; // Retorna todas as linhas sem deduplicação por chave
   if(skippedFullProducts.size){
     console.log('[dotb] Produtos ignorados da Hotmart-PHM na QTD global porque já existem na Hotmart-Limpo:', [...skippedFullProducts].sort());
   }
-  return out;
+  return all;
 }
 function countGlobalSales(rows){
-  return rows.length; // Retorna todas as linhas como vendas, conforme solicitado
+  const seen=new Set();
+  rows.forEach(r=>{ if(r.key) seen.add(r.key); });
+  return seen.size;
 }
 function productSalesSummary(rows){
   const by={};
@@ -1664,7 +1666,7 @@ function productSalesSummary(rows){
   return Object.values(by).sort((a,b)=>b.vendas-a.vendas || a.produto.localeCompare(b.produto));
 }
 
-// ═══ VENDAS (1ª parcela) × FATURAMENTO (todas as parcelas) POR PRODUTO ═══
+// ═══ VENDAS × FATURAMENTO (todas as parcelas) POR PRODUTO ═══
 // Para cada produto:
 //   • Vendas        = só venda única / 1ª parcela (isUniqueSourceSale) + dedupe por compra.
 //   • Faturamento   = soma de TODAS as transações do produto (1ª parcela + parcelas seguintes).
@@ -1676,7 +1678,7 @@ function productBreakdown(f){
 
   function bucketFor(name){
     const key = productSourceKey(name);
-    if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', vendas:0, faturamento:0, parcelas:0, fontes:new Set()};
+    if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', vendas:0, faturamento:0, parcelasDepoisPrimeira:0, fontes:new Set()};
     return byProduct[key];
   }
   function consume(r, source){
@@ -1687,19 +1689,15 @@ function productBreakdown(f){
     const b = bucketFor(sale.product);
     b.fontes.add(sale.sourceName);
     b.faturamento += sale.value;          // FATURAMENTO: todas as parcelas
-    if(true){ // Contar todas as parcelas como vendas         // VENDAS: só 1ª parcela / venda única
-      sale.key = sourceSaleKey(sale);
-      if(sale.key) b.vendas++;
-    }else{
-      b.parcelas++;                       // parcelas seguintes → só no faturamento
-    }
+    b.vendas += 1;                         // VENDAS: transações/linhas do período
+    if(!isUniqueSourceSale(sale)) b.parcelasDepoisPrimeira += 1; // só diagnóstico
   }
 
   RAW.hotmart.forEach(r=>consume(r,'limpo'));
   RAW.hotmartFull.forEach(r=>consume(r,'full'));
 
   return Object.values(byProduct)
-    .map(b=>({produto:b.produto, vendas:b.vendas, faturamento:b.faturamento, parcelas:b.parcelas, fontes:[...b.fontes].join(' + ')}))
+    .map(b=>({produto:b.produto, vendas:b.vendas, faturamento:b.faturamento, parcelas:b.parcelasDepoisPrimeira, fontes:[...b.fontes].join(' + ')}))
     .filter(p=>p.vendas>0 || p.faturamento>0)
     .sort((a,b)=> b.faturamento - a.faturamento || b.vendas - a.vendas || a.produto.localeCompare(b.produto));
 }
@@ -1725,8 +1723,8 @@ function renderProductBreakdown(f){
   const tF = rows.reduce((s,p)=>s+p.faturamento,0);
   if(foot) foot.innerHTML='<tr><td class="cr-name">Total</td><td>'+fmtN(tV)+'</td><td>'+money2(tF)+'</td><td></td></tr>';
 
-  console.log('%c[dotb] Vendas (1ª parcela) × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
-  console.table(rows.map(p=>({Produto:p.produto,'Vendas (1ª parcela)':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas seguintes':p.parcelas,'Fonte(s)':p.fontes})));
+  console.log('%c[dotb] Vendas × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
+  console.table(rows.map(p=>({Produto:p.produto,'Vendas':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas após 1ª (diagnóstico)':p.parcelas,'Fonte(s)':p.fontes})));
 }
 
 // ═══ RENDER ═══
@@ -1751,7 +1749,7 @@ function render(){
 
   // Hotmart aggregates
   // Faturamento: soma todas as parcelas pela data de recebimento/transação.
-  // Vendas: conta apenas vendas únicas pela data da compra original.
+  // Vendas: conta as transações/linhas aprovadas no período filtrado.
   let bruto=0;
   hotRevenue.forEach(r=>{
     const v=parseMoney(r[COLS.hotValue]); bruto+=v;
@@ -1761,8 +1759,7 @@ function render(){
       dayData.bruto+=v;
     }
   });
-  // Vendas por dia também usam a chave de dedupe (Transaction ID se disponível, senão
-  // identidade + data truncada + produto). Mesma lógica do countUniqueSales.
+  // Vendas por dia usam a chave da linha/transação do período, sem dedupe por comprador/Transaction ID.
   const daySaleKeys={};
   hotSales.forEach(sale=>{
     const d=sale.date;
@@ -1770,10 +1767,10 @@ function render(){
     const dayData = (byDay[d]=byDay[d]||{invest:0,bruto:0,vendas:0});
     const k = sale.key;
     const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
-    dayData.vendas+=1;
+    if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
-  const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart-Limpo + Hotmart-PHM, sem parcelas
-  console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
+  const vendas=countGlobalSales(hotSales);   // VENDAS globais: transações/linhas do período
+  console.log('[dotb] Verificação RENDER - linhas de vendas:', hotSales.length);
   const liquido=bruto-invest;
   const roas=invest>0?bruto/invest:0;      // ROAS = faturamento bruto (todas as parcelas) / investimento
   const cac=vendas>0?invest/vendas:0;      // CAC = investimento / vendas únicas
@@ -1790,22 +1787,22 @@ function render(){
   console.log(
     '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
     +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
-    +'  • Vendas únicas finais globais (fonte canônica + 1ª parcela + dedupe): '+vendas+'\n'
+    +'  • Vendas finais globais (transações do período): '+vendas+'\n'
     +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
-    +'  • Linhas pré-dedupe globais (fonte canônica + 1ª parcela): '+hotSales.length+'\n'
+    +'  • Linhas de vendas globais (fonte canônica): '+hotSales.length+'\n'
     +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
     'color:#4dffa7;font-weight:bold'
   );
 
   const prodSales=productSalesSummary(hotSales);
   if(prodSales.length){
-    console.log('%c[dotb] Vendas únicas por produto (regra global; Hotmart-Limpo + produtos exclusivos Hotmart-PHM):','color:#4dffa7;font-weight:bold');
-    console.table(prodSales.map(p=>({Produto:p.produto,'Vendas únicas':p.vendas,'Fonte(s)':[...p.fontes].join(' + ')})));
+    console.log('%c[dotb] Vendas por produto (transações do período; Hotmart-Limpo + produtos exclusivos Hotmart-PHM):','color:#4dffa7;font-weight:bold');
+    console.table(prodSales.map(p=>({Produto:p.produto,'Vendas':p.vendas,'Fonte(s)':[...p.fontes].join(' + ')})));
   }
 
   // Detalhe extra: lista as linhas que foram para a contagem de vendas únicas
   if(hotSales.length && hotSales.length < 40){
-    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas (só 1ª parcela; chave dedupe na última coluna):','color:#4dffa7');
+    console.log('%c[dotb] Linhas usadas na contagem de vendas (transações do período; chave da linha na última coluna):','color:#4dffa7');
     console.table(hotSales.map(s=>({
       'Fonte': s.sourceName,
       'Buyer Name': s.buyer || '(vazio/não detectado)',
@@ -1816,7 +1813,7 @@ function render(){
       'Status': s.status || '',
       'Recurrency': (s.recurrency===null || s.recurrency===undefined || String(s.recurrency).trim()==='') ? '(vazio/sem recorrência)' : s.recurrency,
       'Valor': s.value,
-      'Chave dedupe': s.key
+      'Chave linha': s.key
     })));
   }
 
@@ -1994,7 +1991,7 @@ function renderPHM(){
     const st=sale.status;
     if(!['approved','completed'].includes(st)) return;
     // No funil, também respeitamos a regra global de venda única/primeira parcela.
-    // if(!isUniqueSourceSale(sale)) return; // Contar todas as parcelas como vendas
+    if(!isUniqueSourceSale(sale)) return;
     buyersApproved++;
     const email=norm(sale.email || (cEmail ? r[cEmail] : ''));
     const prod=norm(sale.product || (cProd ? r[cProd] : ''));
