@@ -183,6 +183,12 @@ canvas{width:100%!important;}
 .tbl th.sort-active{color:var(--accent);}
 .sort-caret{display:inline-block;font-size:8px;margin-left:2px;color:var(--accent);}
 
+/* Tabela "Vendas por produto" — primeira coluna alinhada à esquerda */
+#prod-breakdown-sec .tbl{min-width:680px;}
+#prod-breakdown-sec .tbl th:first-child,#prod-breakdown-sec .tbl td:first-child{text-align:left;padding-left:16px;}
+#prod-breakdown-sec .tbl td:last-child{text-align:left;font-family:var(--grotesk);font-size:11px;}
+#prod-breakdown-sec .tbl th:last-child{text-align:left;}
+
 .empty{padding:48px;text-align:center;color:var(--gray-2);font-size:13px;}
 .empty .big{font-family:var(--display);font-size:40px;color:var(--bg-3);margin-bottom:12px;}
 
@@ -304,6 +310,7 @@ body:not(.auth-pending) .login-screen{display:none;}
       <button class="nav-item" data-target="chart-sec"><span class="nav-dot"></span>Evolução diária</button>
       <button class="nav-item" data-target="funnel-meta-sec"><span class="nav-dot"></span>Funil Meta Ads</button>
       <button class="nav-item" data-target="table-sec"><span class="nav-dot"></span>Criativos</button>
+      <button class="nav-item" data-target="prod-breakdown-sec"><span class="nav-dot"></span>Vendas por produto</button>
       <button class="nav-item" data-target="funnel-phm-sec"><span class="nav-dot"></span>Funil PHM</button>
     </nav>
     <div class="sb-foot">
@@ -503,6 +510,23 @@ body:not(.auth-pending) .login-screen{display:none;}
           </tr></thead>
           <tbody id="tblCreativos"></tbody>
           <tfoot id="tblFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- BREAKDOWN POR PRODUTO -->
+    <div class="section" id="prod-breakdown-sec">
+      <div class="section-head"><h2 class="section-title">Vendas <em>por produto</em></h2><span class="section-tag">Vendas = só 1ª parcela · Faturamento = todas as parcelas</span></div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th>Produto</th>
+            <th>Vendas (1ª parcela)</th>
+            <th>Faturamento (todas)</th>
+            <th>Fonte</th>
+          </tr></thead>
+          <tbody id="tblProdBreak"></tbody>
+          <tfoot id="tblProdBreakFoot"></tfoot>
         </table>
       </div>
     </div>
@@ -1648,6 +1672,71 @@ function productSalesSummary(rows){
   return Object.values(by).sort((a,b)=>b.vendas-a.vendas || a.produto.localeCompare(b.produto));
 }
 
+// ═══ VENDAS (1ª parcela) × FATURAMENTO (todas as parcelas) POR PRODUTO ═══
+// Para cada produto:
+//   • Vendas        = só venda única / 1ª parcela (isUniqueSourceSale) + dedupe por compra.
+//   • Faturamento   = soma de TODAS as transações do produto (1ª parcela + parcelas seguintes).
+// Mesma regra canônica das demais seções: Hotmart-Limpo manda; Hotmart-PHM só entra
+// para produtos que ainda NÃO existem na aba limpa.
+function productBreakdown(f){
+  const limpoProductKeys = getLimpoProductKeys();
+  const byProduct = {};
+
+  function bucketFor(name){
+    const key = productSourceKey(name);
+    if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', saleKeys:new Set(), faturamento:0, parcelas:0, fontes:new Set()};
+    return byProduct[key];
+  }
+  function consume(r, source){
+    const sale = sourceSaleFields(r, source);
+    if(!salePassFilters(sale, f)) return;
+    // PHM só entra para produtos que NÃO existem na Hotmart-Limpo (mesma regra da QTD global)
+    if(source==='full' && limpoProductKeys.has(productSourceKey(sale.product))) return;
+    const b = bucketFor(sale.product);
+    b.fontes.add(sale.sourceName);
+    b.faturamento += sale.value;          // FATURAMENTO: todas as parcelas
+    if(isUniqueSourceSale(sale)){         // VENDAS: só 1ª parcela / venda única
+      sale.key = sourceSaleKey(sale);
+      if(sale.key) b.saleKeys.add(sale.key);
+    }else{
+      b.parcelas++;                       // parcelas seguintes → só no faturamento
+    }
+  }
+
+  RAW.hotmart.forEach(r=>consume(r,'limpo'));
+  RAW.hotmartFull.forEach(r=>consume(r,'full'));
+
+  return Object.values(byProduct)
+    .map(b=>({produto:b.produto, vendas:b.saleKeys.size, faturamento:b.faturamento, parcelas:b.parcelas, fontes:[...b.fontes].join(' + ')}))
+    .filter(p=>p.vendas>0 || p.faturamento>0)
+    .sort((a,b)=> b.faturamento - a.faturamento || b.vendas - a.vendas || a.produto.localeCompare(b.produto));
+}
+
+function renderProductBreakdown(f){
+  const body = document.getElementById('tblProdBreak');
+  const foot = document.getElementById('tblProdBreakFoot');
+  if(!body) return;
+  const rows = productBreakdown(f);
+  if(!rows.length){
+    body.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhuma venda no período / seleção</td></tr>';
+    if(foot) foot.innerHTML=''; return;
+  }
+  body.innerHTML = rows.map(p=>(
+    '<tr>'+
+      '<td class="cr-name" title="'+escAttr(p.produto)+'">'+p.produto+'</td>'+
+      '<td>'+fmtN(p.vendas)+'</td>'+
+      '<td>'+money2(p.faturamento)+'</td>'+
+      '<td style="color:var(--gray)">'+p.fontes+'</td>'+
+    '</tr>'
+  )).join('');
+  const tV = rows.reduce((s,p)=>s+p.vendas,0);
+  const tF = rows.reduce((s,p)=>s+p.faturamento,0);
+  if(foot) foot.innerHTML='<tr><td class="cr-name">Total</td><td>'+fmtN(tV)+'</td><td>'+money2(tF)+'</td><td></td></tr>';
+
+  console.log('%c[dotb] Vendas (1ª parcela) × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
+  console.table(rows.map(p=>({Produto:p.produto,'Vendas (1ª parcela)':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas seguintes':p.parcelas,'Fonte(s)':p.fontes})));
+}
+
 // ═══ RENDER ═══
 function render(){
   if(!RAW.meta.length && !RAW.hotmart.length){ return; }
@@ -1768,6 +1857,9 @@ function render(){
 
   // Table — criativos Meta Ads × vendas do próprio Meta Ads (sem cruzar com Hotmart/SCK)
   renderTable(meta);
+
+  // Vendas (1ª parcela) × Faturamento (todas) por produto
+  renderProductBreakdown(f);
 
   // Funil PHM
   renderPHM();
