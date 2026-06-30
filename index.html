@@ -1,546 +1,3 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>dotb · Performance Dashboard</title>
-<!-- versão corrigida: vendas globais usam Hotmart-Limpo como fonte canônica por produto; Hotmart-PHM só para produtos exclusivos -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Halyard+Display:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#161613;--bg-1:#1c1c19;--bg-2:#222220;--bg-3:#2a2a27;--line:#2e2e2b;
-  --red:#f2312c;--red-dim:rgba(242,49,44,.14);   /* SOMENTE p/ semântica negativa: prejuízo, ROAS<1 */
-  --white:#fff;--off:#f6f4ef;--gray:#888884;--gray-2:#55554f;
-  --green:#89cc72;--mint:#4dffa7;--blue:#3b8bff;
-  --amber:#e8a13c;                                /* investimento no gráfico (contraste) */
-  --accent:#89cc72;--accent-2:#4dffa7;--accent-dim:rgba(137,204,114,.16);  /* identidade verde */
-  --display:'Bowlby One',cursive;--grotesk:'Halyard Display',system-ui,sans-serif;--r15:15px;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{background:var(--bg);color:var(--off);font-family:var(--grotesk);font-weight:300;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-body{background:radial-gradient(ellipse 900px 500px at 90% -5%,rgba(137,204,114,.07),transparent 60%),var(--bg);}
-.shell{display:flex;min-height:100vh;}
-
-/* SIDEBAR */
-.sidebar{width:220px;flex-shrink:0;background:#0f0f0d;border-right:1px solid var(--line);padding:28px 20px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh;overflow-y:auto;}
-.brand{font-family:var(--display);font-size:24px;letter-spacing:.01em;color:var(--off);}
-.brand .rb{color:var(--accent);}
-.brand-sub{font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gray);margin-top:5px;}
-.nav{display:flex;flex-direction:column;gap:2px;}
-.nav-lbl{font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gray-2);padding:0 10px 8px;}
-.nav-item{display:flex;align-items:center;gap:9px;padding:10px;font-size:12.5px;font-weight:400;color:var(--gray);border:none;border-left:2px solid transparent;background:transparent;width:100%;text-align:left;cursor:pointer;transition:all .2s;border-radius:0 var(--r15) var(--r15) 0;font-family:var(--grotesk);}
-.nav-item:hover{color:var(--off);background:var(--bg-2);}
-.nav-item.active{color:var(--off);border-left-color:var(--accent);background:var(--accent-dim);}
-.nav-dot{width:4px;height:4px;border-radius:50%;background:var(--gray-2);flex-shrink:0;}
-.nav-item.active .nav-dot{background:var(--accent);}
-.sb-foot{margin-top:auto;padding-top:20px;border-top:1px solid var(--line);}
-.sb-foot-lbl{font-size:9px;letter-spacing:.26em;color:var(--gray-2);text-transform:uppercase;}
-.sb-foot-val{font-size:12px;color:var(--gray);margin-top:4px;}
-
-/* MAIN */
-.main{flex:1;min-width:0;padding:28px 36px 60px;}
-.topbar{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:24px;gap:16px;flex-wrap:wrap;}
-.page-eyebrow{font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
-.page-eyebrow::before{content:'';width:20px;height:1px;background:var(--accent);}
-h1{font-family:var(--display);font-size:30px;font-weight:400;color:var(--off);line-height:1;}
-.ts{font-family:monospace;font-size:10px;color:var(--gray-2);letter-spacing:.06em;}
-
-/* FILTER BAR */
-.filter-bar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px 20px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);margin-bottom:28px;}
-.fg{display:flex;flex-direction:column;gap:5px;}
-.flbl{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);font-weight:500;}
-.dd-wrap,.period-wrap{position:relative;}
-.dd-btn{background:var(--bg-3);border:1px solid var(--line);color:var(--off);font-family:var(--grotesk);font-size:12.5px;padding:9px 12px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:8px;min-width:200px;justify-content:space-between;transition:border-color .2s;}
-.dd-btn:hover{border-color:var(--accent);}
-.dd-caret{color:var(--accent);font-size:9px;}
-.dd-panel,.period-dd{position:absolute;top:calc(100% + 4px);left:0;z-index:300;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r15);min-width:260px;display:none;box-shadow:0 8px 32px rgba(0,0,0,.7);}
-.dd-panel{max-height:300px;overflow-y:auto;}
-.dd-panel.open,.period-dd.open{display:block;}
-.dd-search{width:100%;background:var(--bg-3);border:none;border-bottom:1px solid var(--line);color:var(--off);font-family:var(--grotesk);font-size:12px;padding:10px 14px;outline:none;border-radius:var(--r15) var(--r15) 0 0;position:sticky;top:0;}
-.dd-actions{display:flex;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);position:sticky;top:38px;background:var(--bg-2);}
-.dd-act{background:transparent;border:1px solid var(--line);color:var(--gray);font-size:10px;letter-spacing:.16em;text-transform:uppercase;padding:5px 9px;cursor:pointer;border-radius:8px;font-family:var(--grotesk);}
-.dd-act:hover{color:var(--accent);border-color:var(--accent);}
-.dd-list{padding:4px;}
-.dd-opt{display:flex;align-items:center;gap:9px;padding:9px 10px;cursor:pointer;font-size:12px;border-radius:10px;transition:background .15s;}
-.dd-opt:hover{background:var(--bg-3);}
-.dd-opt input{accent-color:var(--accent);cursor:pointer;width:13px;height:13px;flex-shrink:0;}
-.dd-opt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.status-checks{display:flex;gap:8px;flex-wrap:wrap;}
-.sc-item{display:flex;align-items:center;gap:6px;background:var(--bg-3);border:1px solid var(--line);padding:8px 11px;border-radius:10px;cursor:pointer;font-size:12px;transition:border-color .2s;}
-.sc-item:hover{border-color:var(--accent);}
-.sc-item input{accent-color:var(--accent);}
-.p-opt{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--line);transition:background .15s;}
-.p-opt:last-of-type{border-bottom:none;}
-.p-opt:hover{background:var(--bg-3);}
-.p-opt.active{color:var(--accent);background:var(--accent-dim);}
-.custom-range{padding:12px 14px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-.date-inp{background:var(--bg-3);border:1px solid var(--line);color:var(--off);font-family:monospace;font-size:12px;padding:8px 10px;border-radius:10px;color-scheme:dark;outline:none;transition:border-color .2s;}
-.date-inp:focus{border-color:var(--accent);}
-.f-spacer{flex:1;}
-.f-actions{display:flex;gap:8px;align-items:flex-end;}
-.ref-status{display:flex;align-items:center;gap:5px;font-family:monospace;font-size:10px;color:var(--gray-2);padding-bottom:10px;}
-.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);}
-.ref-status.loading .pulse{background:var(--accent);animation:blink 1s ease-in-out infinite;}
-.ref-status.error .pulse{background:#ff6b6b;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
-.btn-ref{background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:var(--grotesk);font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;border-radius:10px;transition:all .2s;}
-.btn-ref:hover{background:var(--accent-dim);}
-.btn-ref.spinning svg{animation:spin 1s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.btn-reset{background:transparent;border:1px solid var(--line);color:var(--gray);font-family:var(--grotesk);font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:9px 14px;cursor:pointer;border-radius:10px;transition:all .2s;}
-.btn-reset:hover{border-color:var(--accent);color:var(--accent);}
-.btn-apply{background:var(--accent);border:none;color:#10210c;font-family:var(--grotesk);font-weight:600;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:10px 18px;cursor:pointer;border-radius:10px;transition:all .2s;}
-.btn-apply:hover{background:#9ad97f;box-shadow:0 0 20px rgba(137,204,114,.35);}
-
-/* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border-radius:var(--r15);overflow:hidden;border:1px solid var(--line);margin-bottom:36px;}
-.kpi{background:var(--bg-1);padding:20px 18px 16px;position:relative;}
-.kpi::after{content:'';position:absolute;bottom:0;left:0;width:100%;height:2px;background:transparent;transition:background .3s;}
-.kpi:hover::after{background:var(--accent);}
-.kpi-lbl{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--accent);font-weight:500;}
-.kpi-val{font-family:var(--display);font-size:23px;color:var(--off);margin-top:10px;line-height:1.05;word-break:break-word;}
-.kpi-val .cur{font-size:11px;color:var(--gray);margin-right:3px;font-family:var(--grotesk);font-weight:400;}
-.kpi-sub{font-size:10px;color:var(--gray);margin-top:6px;}
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;}
-.badge-green{background:rgba(137,204,114,.15);color:var(--green);}
-.badge-red{background:rgba(242,49,44,.12);color:var(--red);}
-
-/* SECTION */
-.section{margin-bottom:44px;scroll-margin-top:20px;}
-.section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
-.section-title{font-family:var(--display);font-size:19px;font-weight:400;color:var(--off);}
-.section-title em{color:var(--accent);font-style:normal;}
-.section-tag{font-size:9px;letter-spacing:.26em;color:var(--gray-2);text-transform:uppercase;}
-
-/* CHART */
-.chart-card{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);padding:24px 24px 16px;position:relative;overflow:hidden;}
-.chart-card::before{content:'';position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle,rgba(137,204,114,.06),transparent 70%);pointer-events:none;}
-.chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
-.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray);}
-.legend-dot{width:8px;height:8px;border-radius:50%;}
-canvas{width:100%!important;}
-/* Gráfico: altura controlada (antes ficava gigante em telas largas) */
-.chart-canvas-wrap{position:relative;width:100%;height:300px;}
-.chart-canvas-wrap canvas{height:100%!important;}
-.chart-fs-btn{position:absolute;top:14px;right:14px;z-index:4;width:32px;height:32px;border-radius:9px;background:var(--bg-3);border:1px solid var(--line);color:var(--gray);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;}
-.chart-fs-btn:hover{color:var(--off);border-color:var(--accent);background:var(--accent-dim);}
-.chart-fs-btn svg{width:16px;height:16px;}
-#chartCard:fullscreen{background:var(--bg);padding:40px 44px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
-#chartCard:fullscreen .chart-canvas-wrap{height:calc(100vh - 130px);}
-#chartCard:-webkit-full-screen{background:var(--bg);padding:40px 44px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
-#chartCard:-webkit-full-screen .chart-canvas-wrap{height:calc(100vh - 130px);}
-
-/* FUNNEL META */
-.funnel-wrap{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);padding:32px 40px 28px;position:relative;overflow:hidden;}
-.funnel-wrap::before{content:'';position:absolute;top:0;left:0;width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4;}
-.funnel-grid{display:grid;grid-template-columns:135px 1fr 135px;gap:0;align-items:center;}
-.side-rates{display:flex;flex-direction:column;justify-content:space-around;height:100%;padding:30px 0;gap:18px;}
-.sr-item{padding:6px 8px;}
-.sr-item.l{text-align:right;padding-right:16px;}
-.sr-item.r{text-align:left;padding-left:16px;}
-.sr-lbl{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gray-2);}
-.sr-val{font-family:var(--display);font-size:19px;color:var(--off);margin-top:4px;}
-.sr-val.green{color:var(--green);}
-.sr-val.red{color:var(--accent);}
-.sr-hint{font-size:8.5px;letter-spacing:.04em;color:var(--gray-2);margin-top:3px;font-style:italic;}
-.cr-thumb-cell{width:52px;}
-.cr-thumb{width:42px;height:42px;border-radius:9px;object-fit:cover;display:block;background:var(--bg-3);border:1px solid var(--line);}
-.cr-noimg{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:9px;background:var(--bg-3);border:1px solid var(--line);color:var(--gray-2);font-size:11px;}
-.ig-link{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--bg-3);border:1px solid var(--line);color:var(--blue);text-decoration:none;transition:all .15s;}
-.ig-link:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--off);}
-.ig-link svg{width:15px;height:15px;}
-
-/* FUNNEL PHM */
-.phm-funnel{display:flex;flex-direction:column;align-items:center;gap:0;padding:10px 0;}
-.phm-step{width:100%;display:flex;align-items:center;justify-content:center;gap:0;}
-.phm-side{width:150px;flex-shrink:0;font-size:10px;color:var(--gray-2);}
-.phm-side.l{text-align:right;padding-right:18px;}
-.phm-side.r{text-align:left;padding-left:18px;}
-.phm-rate{font-family:var(--display);font-size:16px;color:var(--green);}
-.phm-bar-wrap{flex:1;display:flex;justify-content:center;max-width:560px;}
-.phm-bar{height:74px;display:flex;align-items:center;justify-content:center;border-radius:var(--r15);transition:width .5s ease;min-width:160px;}
-.phm-bar-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);}
-.phm-bar-num{font-family:var(--display);font-size:25px;color:#fff;margin-top:2px;}
-.phm-arrow{display:flex;justify-content:center;padding:7px 0;color:var(--gray-2);}
-
-/* TABLE */
-.tbl-wrap{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);overflow:hidden;overflow-x:auto;}
-.tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:920px;}
-.tbl th{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gray-2);font-weight:500;padding:12px 16px;border-bottom:1px solid var(--line);text-align:right;background:var(--bg-2);white-space:nowrap;}
-.tbl th:first-child{text-align:left;}
-.tbl td{padding:11px 16px;border-bottom:1px solid var(--line);color:var(--off);text-align:right;font-family:monospace;font-size:11.5px;white-space:nowrap;}
-.tbl td:first-child{text-align:center;padding:8px 10px;}
-.tbl td.cr-name{text-align:left;font-family:var(--grotesk);font-size:12px;max-width:240px;overflow:hidden;text-overflow:ellipsis;}
-.tbl tbody tr:last-child td{border-bottom:none;}
-.tbl tbody tr:hover td{background:var(--bg-2);}
-.tbl tfoot td{padding:12px 16px;border-top:2px solid var(--line);font-family:monospace;font-size:11.5px;color:var(--off);text-align:right;background:var(--bg-2);font-weight:600;}
-.tbl tfoot td.cr-name{text-align:left;font-family:var(--grotesk);}
-.roas-badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;}
-.tbl th.sortable{cursor:pointer;user-select:none;transition:color .15s;}
-.tbl th.sortable:hover{color:var(--off);}
-.tbl th.sort-active{color:var(--accent);}
-.sort-caret{display:inline-block;font-size:8px;margin-left:2px;color:var(--accent);}
-
-/* Tabela "Vendas por produto" — primeira coluna alinhada à esquerda */
-#prod-breakdown-sec .tbl{min-width:680px;}
-#prod-breakdown-sec .tbl th:first-child,#prod-breakdown-sec .tbl td:first-child{text-align:left;padding-left:16px;}
-#prod-breakdown-sec .tbl td:last-child{text-align:left;font-family:var(--grotesk);font-size:11px;}
-#prod-breakdown-sec .tbl th:last-child{text-align:left;}
-
-.empty{padding:48px;text-align:center;color:var(--gray-2);font-size:13px;}
-.empty .big{font-family:var(--display);font-size:40px;color:var(--bg-3);margin-bottom:12px;}
-
-::-webkit-scrollbar{width:5px;height:6px;}
-::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--bg-3);border-radius:4px;}
-
-@media(max-width:900px){
-  .sidebar{display:none;}
-  .main{padding:16px 16px 60px;}
-  .kpi-grid{grid-template-columns:repeat(2,1fr);}
-  .funnel-grid{grid-template-columns:1fr;}
-  .side-rates{flex-direction:row;flex-wrap:wrap;padding:16px 0;}
-  .phm-side{display:none;}
-}
-
-
-/* LOGIN */
-body.auth-pending{overflow:hidden;}
-body.auth-pending .shell{visibility:hidden;pointer-events:none;}
-.login-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse 760px 420px at 75% 0%,rgba(137,204,114,.16),transparent 62%),linear-gradient(135deg,#0d0d0b,#181815 52%,#10110f);}
-body:not(.auth-pending) .login-screen{display:none;}
-.login-card{width:min(420px,100%);background:rgba(28,28,25,.94);border:1px solid rgba(137,204,114,.24);border-radius:24px;padding:34px 32px 30px;box-shadow:0 30px 90px rgba(0,0,0,.55);position:relative;overflow:hidden;}
-.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--mint));}
-.login-brand{font-family:var(--display);font-size:42px;line-height:1;color:var(--off);letter-spacing:.01em;}
-.login-brand span{color:var(--accent);}
-.login-sub{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gray);margin-top:8px;margin-bottom:28px;}
-.login-form{display:flex;flex-direction:column;gap:14px;}
-.login-form label{display:flex;flex-direction:column;gap:6px;}
-.login-form label span{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);font-weight:500;}
-.login-form input{height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg-3);color:var(--off);font:400 15px var(--grotesk);padding:0 14px;outline:none;transition:border-color .18s,box-shadow .18s;}
-.login-form input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(137,204,114,.12);}
-.login-form button{height:48px;border:0;border-radius:12px;background:var(--accent);color:#10210c;font:700 12px var(--grotesk);letter-spacing:.22em;text-transform:uppercase;cursor:pointer;margin-top:4px;transition:filter .18s,transform .18s;}
-.login-form button:hover{filter:brightness(1.08);transform:translateY(-1px);}
-.login-error{min-height:16px;font-size:12px;color:#ff8b86;}
-.top-actions{display:flex;align-items:center;gap:12px;}
-.btn-logout{background:transparent;border:1px solid var(--line);color:var(--gray);font-family:var(--grotesk);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:8px 10px;border-radius:9px;cursor:pointer;transition:all .2s;}
-.btn-logout:hover{border-color:var(--accent);color:var(--accent);}
-
-/* HOTMART-LIKE DATE RANGE */
-.hm-period{position:relative;}
-.period-trigger{height:38px;background:var(--bg-3);}
-.hm-period-dd{
-  width:340px;
-  min-width:340px;
-  max-width:calc(100vw - 32px);
-  background:#fff;
-  color:#3f4650;
-  border:1px solid #e1e5ec;
-  border-radius:7px;
-  box-shadow:0 18px 50px rgba(0,0,0,.38);
-  padding:14px;
-  left:0;
-  top:calc(100% + 8px);
-  font-family:Arial,system-ui,sans-serif;
-}
-.hm-range-fields{display:grid;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:8px;align-items:center;margin-bottom:12px;}
-.hm-range-fields span{color:#505762;font-size:13px;text-align:center;}
-.hm-date-display{width:100%;height:42px;border:1px solid #cfd6e1;border-radius:5px;background:#fff;color:#30363d;font-size:15px;text-align:center;outline:none;}
-.hm-date-display:focus{border-color:#5f82e8;box-shadow:0 0 0 2px rgba(95,130,232,.16);}
-.hm-cal-head{display:grid;grid-template-columns:34px 1fr 34px;align-items:center;gap:8px;margin:4px 0 10px;}
-.hm-nav{border:0;background:transparent;color:#39424e;font-size:34px;line-height:1;cursor:pointer;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;}
-.hm-nav:hover{background:#f3f5f8;}
-.hm-month-pill{height:34px;border-radius:4px;background:#f6f7f9;display:flex;align-items:center;justify-content:center;gap:22px;color:#414850;font-size:17px;}
-.hm-week{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;color:#858b95;font-size:12px;margin-bottom:6px;}
-.hm-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:14px;}
-.hm-day{height:34px;border:0;background:#fbfcfd;color:#333b44;font-size:16px;cursor:pointer;position:relative;}
-.hm-day:hover{background:#edf2ff;}
-.hm-day.out{color:#b8bec7;background:#fafafa;}
-.hm-day.in-range{background:#edf2ff;}
-.hm-day.selected{background:#5c7ee5;color:#fff;border-radius:50%;font-weight:600;box-shadow:0 3px 8px rgba(92,126,229,.24);}
-.hm-day.today:not(.selected)::after{content:'';position:absolute;left:50%;bottom:5px;width:4px;height:4px;border-radius:50%;background:#5c7ee5;transform:translateX(-50%);}
-.hm-presets-title{font-size:16px;color:#40464f;margin:2px 0 8px;}
-.hm-preset-grid{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid #aeb7c4;border-radius:5px;overflow:hidden;margin-bottom:16px;}
-.hm-preset-grid .p-opt{height:35px;border:0;border-right:1px solid #aeb7c4;border-bottom:1px solid #aeb7c4;background:#fff;color:#444b55;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
-.hm-preset-grid .p-opt:nth-child(5n){border-right:0;}
-.hm-preset-grid .p-opt:nth-child(n+6){border-bottom:0;}
-.hm-preset-grid .p-opt:hover{background:#f3f6ff;}
-.hm-preset-grid .p-opt.active{background:#eef3ff;color:#4f72db;font-weight:600;}
-.hm-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.hm-actions button{height:44px;border-radius:5px;font-size:17px;cursor:pointer;}
-.hm-cancel{background:#fff;color:#1f2937;border:1px solid #aeb7c4;}
-.hm-apply{background:#5c7ee5;color:#fff;border:1px solid #5c7ee5;}
-.hm-apply:hover{filter:brightness(1.04);}
-@media(max-width:600px){.hm-period-dd{width:calc(100vw - 32px);min-width:0;left:0;}.hm-date-display{font-size:14px}.hm-day{height:32px;font-size:15px}.hm-actions button{font-size:16px}.hm-month-pill{font-size:16px;gap:18px}}
-
-</style>
-</head>
-<body class="auth-pending">
-
-<div class="login-screen" id="loginScreen" aria-label="Tela de acesso dotb">
-  <div class="login-card">
-    <div class="login-brand">dot<span>b</span></div>
-    <div class="login-sub">Performance Dashboard</div>
-    <form id="loginForm" class="login-form" autocomplete="off">
-      <label>
-        <span>Login</span>
-        <input id="loginUser" type="text" placeholder="admin" autocomplete="username" autofocus>
-      </label>
-      <label>
-        <span>Senha</span>
-        <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
-      </label>
-      <div class="login-error" id="loginError" role="alert"></div>
-      <button type="submit">Entrar</button>
-    </form>
-  </div>
-</div>
-
-<div class="shell">
-  <aside class="sidebar">
-    <div>
-      <div class="brand">dot<span class="rb">b</span></div>
-      <div class="brand-sub">Defender of the Brand</div>
-    </div>
-    <nav class="nav">
-      <div class="nav-lbl">Visão geral</div>
-      <button class="nav-item active" data-target="kpis"><span class="nav-dot"></span>KPIs</button>
-      <button class="nav-item" data-target="chart-sec"><span class="nav-dot"></span>Evolução diária</button>
-      <button class="nav-item" data-target="funnel-meta-sec"><span class="nav-dot"></span>Funil Meta Ads</button>
-      <button class="nav-item" data-target="table-sec"><span class="nav-dot"></span>Criativos</button>
-      <button class="nav-item" data-target="prod-breakdown-sec"><span class="nav-dot"></span>Vendas por produto</button>
-      <button class="nav-item" data-target="funnel-phm-sec"><span class="nav-dot"></span>Funil PHM</button>
-    </nav>
-    <div class="sb-foot">
-      <div class="sb-foot-lbl">Última atualização</div>
-      <div class="sb-foot-val" id="sbDate">—</div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="topbar">
-      <div>
-        <div class="page-eyebrow">Performance Dashboard</div>
-        <h1>dot<span style="color:var(--accent)">b</span></h1>
-      </div>
-      <div class="top-actions"><div class="ts" id="tsNow">—</div><button class="btn-logout" id="btnLogout" type="button">Sair</button></div>
-    </div>
-
-    <!-- FILTERS -->
-    <div class="filter-bar">
-      <div class="fg">
-        <div class="flbl">Período</div>
-        <div class="period-wrap hm-period">
-          <button class="dd-btn period-trigger" id="periodBtn" style="min-width:220px;"><span id="periodBtnLabel">Últimos 30 dias</span><span class="dd-caret">⌄</span></button>
-          <div class="period-dd hm-period-dd" id="periodDD">
-            <div class="hm-range-fields">
-              <input type="text" class="hm-date-display" id="dateFromDisplay" readonly aria-label="Data inicial">
-              <span>até</span>
-              <input type="text" class="hm-date-display" id="dateToDisplay" readonly aria-label="Data final">
-              <input type="hidden" id="dateFrom">
-              <input type="hidden" id="dateTo">
-            </div>
-            <div class="hm-cal-head">
-              <button type="button" class="hm-nav" id="calPrev" aria-label="Mês anterior">‹</button>
-              <div class="hm-month-pill"><span id="calMonthLabel">Junho</span><span id="calYearLabel">2026</span></div>
-              <button type="button" class="hm-nav" id="calNext" aria-label="Próximo mês">›</button>
-            </div>
-            <div class="hm-week"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
-            <div class="hm-cal-grid" id="calGrid"></div>
-            <div class="hm-presets-title">Últimos</div>
-            <div class="hm-preset-grid">
-              <button type="button" class="p-opt" data-preset="1">1d</button>
-              <button type="button" class="p-opt" data-preset="7">7d</button>
-              <button type="button" class="p-opt" data-preset="15">15d</button>
-              <button type="button" class="p-opt active" data-preset="30">30d</button>
-              <button type="button" class="p-opt" data-preset="45">45d</button>
-              <button type="button" class="p-opt" data-preset="3m">3m</button>
-              <button type="button" class="p-opt" data-preset="6m">6m</button>
-              <button type="button" class="p-opt" data-preset="12m">12m</button>
-              <button type="button" class="p-opt" data-preset="18m">18m</button>
-              <button type="button" class="p-opt" data-preset="24m">24m</button>
-            </div>
-            <div class="hm-actions">
-              <button type="button" class="hm-cancel" id="dateCancel">Cancelar</button>
-              <button type="button" class="hm-apply" id="dateApply">Aplicar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="fg">
-        <div class="flbl">Campanhas (Meta)</div>
-        <div class="dd-wrap">
-          <button class="dd-btn" id="campBtn"><span id="campBtnLbl">Todas</span><span class="dd-caret">▼</span></button>
-          <div class="dd-panel" id="campDD">
-            <input class="dd-search" id="campSearch" type="text" placeholder="Buscar campanha…" autocomplete="off">
-            <div class="dd-actions"><button class="dd-act" id="campSelAll">Todas</button><button class="dd-act" id="campSelNone">Limpar</button></div>
-            <div class="dd-list" id="campList"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="fg">
-        <div class="flbl">Produto (Hotmart)</div>
-        <div class="dd-wrap">
-          <button class="dd-btn" id="prodBtn"><span id="prodBtnLbl">Todos</span><span class="dd-caret">▼</span></button>
-          <div class="dd-panel" id="prodDD">
-            <input class="dd-search" id="prodSearch" type="text" placeholder="Buscar produto…" autocomplete="off">
-            <div class="dd-actions"><button class="dd-act" id="prodSelAll">Todos</button><button class="dd-act" id="prodSelNone">Limpar</button></div>
-            <div class="dd-list" id="prodList"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="fg">
-        <div class="flbl">Status Transação</div>
-        <div class="status-checks">
-          <label class="sc-item"><input type="checkbox" id="stApproved" checked> approved</label>
-          <label class="sc-item"><input type="checkbox" id="stCompleted" checked> completed</label>
-          <label class="sc-item"><input type="checkbox" id="stOther"> outros</label>
-        </div>
-      </div>
-
-      <div class="f-spacer"></div>
-      <div class="f-actions">
-        <div class="ref-status" id="refStatus"><span class="pulse"></span><span id="refTxt">Carregado</span></div>
-        <button class="btn-ref" id="btnRefresh">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 12a9 9 0 0 1 15.5-6.3M21 12a9 9 0 0 1-15.5 6.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 5h5V0M8 19H3v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Atualizar
-        </button>
-        <button class="btn-reset" id="btnReset">Resetar</button>
-        <button class="btn-apply" id="btnApply">Aplicar</button>
-      </div>
-    </div>
-
-    <!-- KPIs -->
-    <div id="kpis" class="kpi-grid">
-      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">só 1ª parcela + dedupe</div></div>
-      <div class="kpi"><div class="kpi-lbl">Fat. Bruto</div><div class="kpi-val"><span class="cur">R$</span><span id="kBruto">—</span></div><div class="kpi-sub">todas as parcelas</div></div>
-      <div class="kpi"><div class="kpi-lbl">Investimento</div><div class="kpi-val"><span class="cur">R$</span><span id="kInvest">—</span></div><div class="kpi-sub">mídia paga</div></div>
-      <div class="kpi"><div class="kpi-lbl">Fat. Líquido</div><div class="kpi-val"><span class="cur">R$</span><span id="kLiquido">—</span></div><div class="kpi-sub" id="kLiquidoSub">—</div></div>
-      <div class="kpi"><div class="kpi-lbl">ROAS</div><div class="kpi-val" id="kROAS">—</div><div class="kpi-sub">sobre fat. bruto</div></div>
-      <div class="kpi"><div class="kpi-lbl">CAC</div><div class="kpi-val"><span class="cur">R$</span><span id="kCAC">—</span></div><div class="kpi-sub">custo / aquisição</div></div>
-    </div>
-
-    <!-- CHART -->
-    <div class="section" id="chart-sec">
-      <div class="section-head"><h2 class="section-title">Evolução <em>diária</em></h2><span class="section-tag">Faturamento · Investimento · ROAS</span></div>
-      <div class="chart-card" id="chartCard">
-        <button class="chart-fs-btn" id="chartFsBtn" title="Tela cheia" aria-label="Tela cheia">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-        </button>
-        <div class="chart-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#4dffa7"></div>Faturamento</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#e8a13c"></div>Investimento</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#3b8bff"></div>ROAS (eixo dir.)</div>
-        </div>
-        <div class="chart-canvas-wrap" id="chartWrap"><canvas id="chartDaily"></canvas></div>
-      </div>
-    </div>
-
-    <!-- FUNNEL META -->
-    <div class="section" id="funnel-meta-sec">
-      <div class="section-head"><h2 class="section-title">Funil <em>Meta Ads</em></h2><span class="section-tag">Atualiza com a seleção de campanhas</span></div>
-      <div class="funnel-wrap">
-        <div class="funnel-grid">
-          <div class="side-rates">
-            <div class="sr-item l"><div class="sr-lbl">Connect Rate</div><div class="sr-val green" id="fConnRate">—</div><div class="sr-hint">visualização ÷ cliques</div></div>
-            <div class="sr-item l"><div class="sr-lbl">Checkout / Visita</div><div class="sr-val" id="fCheckRate">—</div><div class="sr-hint">início checkout ÷ visualização</div></div>
-            <div class="sr-item l"><div class="sr-lbl">Conversão</div><div class="sr-val" id="fConvRate">—</div><div class="sr-hint">vendas únicas (excl. parcelas) ÷ visualizações de página</div></div>
-          </div>
-          <svg id="funnelSVG" viewBox="0 0 680 500" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#22271f"/><stop offset="100%" stop-color="#2c352a"/></linearGradient>
-              <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#22341f"/><stop offset="100%" stop-color="#2c4427"/></linearGradient>
-              <linearGradient id="g3" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#2f5a36" /><stop offset="100%" stop-color="#3a6e40"/></linearGradient>
-              <linearGradient id="g4" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#89cc72"/><stop offset="100%" stop-color="#4dffa7"/></linearGradient>
-              <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
-            <polygon points="40,30 640,30 600,100 80,100" fill="url(#g1)" stroke="#89cc72" stroke-width="0.5" stroke-opacity="0.3"/>
-            <text x="340" y="55" text-anchor="middle" font-family="'Bowlby One'" font-size="9" letter-spacing="2.5" fill="#89cc72">IMPRESSÕES</text>
-            <text x="340" y="86" id="fImpressoes" text-anchor="middle" font-family="'Bowlby One'" font-size="29" fill="#f6f4ef">—</text>
-            <path d="M340 103L340 118" stroke="#555" stroke-width="1"/><polygon points="336,116 344,116 340,122" fill="#555"/>
-            <polygon points="90,128 590,128 555,198 125,198" fill="url(#g2)" stroke="#89cc72" stroke-width="0.5" stroke-opacity="0.45"/>
-            <text x="340" y="152" text-anchor="middle" font-family="'Bowlby One'" font-size="9" letter-spacing="2.5" fill="#89cc72">CLIQUES (LINK CLICKS)</text>
-            <text x="340" y="185" id="fCliques" text-anchor="middle" font-family="'Bowlby One'" font-size="27" fill="#f6f4ef">—</text>
-            <path d="M340 201L340 216" stroke="#555" stroke-width="1"/><polygon points="336,214 344,214 340,220" fill="#555"/>
-            <polygon points="145,226 535,226 500,296 180,296" fill="url(#g3)" stroke="#89cc72" stroke-width="0.5" stroke-opacity="0.6"/>
-            <text x="340" y="250" text-anchor="middle" font-family="'Bowlby One'" font-size="9" letter-spacing="2.5" fill="#f6f4ef">VISUALIZAÇÃO DE PÁGINA</text>
-            <text x="340" y="283" id="fPageViews" text-anchor="middle" font-family="'Bowlby One'" font-size="25" fill="#f6f4ef">—</text>
-            <path d="M340 299L340 314" stroke="#888" stroke-width="1"/><polygon points="336,312 344,312 340,318" fill="#888"/>
-            <polygon points="205,324 475,324 440,394 240,394" fill="url(#g3)" stroke="#f6f4ef" stroke-width="0.5" stroke-opacity="0.4"/>
-            <text x="340" y="348" text-anchor="middle" font-family="'Bowlby One'" font-size="9" letter-spacing="2.5" fill="#f6f4ef">INÍCIO DE CHECKOUT</text>
-            <text x="340" y="381" id="fCheckout" text-anchor="middle" font-family="'Bowlby One'" font-size="24" fill="#f6f4ef">—</text>
-            <path d="M340 397L340 412" stroke="#4dffa7" stroke-width="1"/><polygon points="336,410 344,410 340,416" fill="#4dffa7"/>
-            <g filter="url(#glow)">
-              <polygon points="260,422 420,422 390,490 290,490" fill="url(#g4)" stroke="#fff" stroke-width="0.6" stroke-opacity="0.3"/>
-              <text x="340" y="448" text-anchor="middle" font-family="'Bowlby One'" font-size="9" letter-spacing="2.5" fill="#fff">VENDAS</text>
-              <text x="340" y="479" id="fVendas" text-anchor="middle" font-family="'Bowlby One'" font-size="27" fill="#fff">—</text>
-            </g>
-          </svg>
-          <div class="side-rates">
-            <div class="sr-item r"><div class="sr-lbl">CPM</div><div class="sr-val" id="fCPMr">—</div></div>
-            <div class="sr-item r"><div class="sr-lbl">CPC</div><div class="sr-val" id="fCPCr">—</div></div>
-            <div class="sr-item r"><div class="sr-lbl">Custo / visita</div><div class="sr-val" id="fCPVr">—</div></div>
-            <div class="sr-item r"><div class="sr-lbl">Custo / checkout</div><div class="sr-val" id="fCPC2r">—</div></div>
-            <div class="sr-item r"><div class="sr-lbl">Custo / compra</div><div class="sr-val red" id="fCPAr">—</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TABLE -->
-    <div class="section" id="table-sec">
-      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag">Meta Ads · vendas por anúncio</span></div>
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead><tr>
-            <th>Prévia</th>
-            <th class="sortable" data-sort="code">Criativo / Ad name <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="invest">Investimento <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="impr">Impressões <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="clicks">Cliques <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
-            <th>Links</th>
-          </tr></thead>
-          <tbody id="tblCreativos"></tbody>
-          <tfoot id="tblFoot"></tfoot>
-        </table>
-      </div>
-    </div>
-
-    <!-- BREAKDOWN POR PRODUTO -->
-    <div class="section" id="prod-breakdown-sec">
-      <div class="section-head"><h2 class="section-title">Vendas <em>por produto</em></h2><span class="section-tag">Vendas = só 1ª parcela · Faturamento = todas as parcelas</span></div>
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead><tr>
-            <th>Produto</th>
-            <th>Vendas</th>
-            <th>Faturamento (todas)</th>
-            <th>Fonte</th>
-          </tr></thead>
-          <tbody id="tblProdBreak"></tbody>
-          <tfoot id="tblProdBreakFoot"></tfoot>
-        </table>
-      </div>
-    </div>
-
-    <!-- FUNNEL PHM -->
-    <div class="section" id="funnel-phm-sec">
-      <div class="section-head"><h2 class="section-title">Funil <em>PHM</em></h2><span class="section-tag">Lead PHM → Plano Head de Marketing → Full Stack Marketing · cruzamento por e-mail (approved/completed)</span></div>
-      <div class="chart-card">
-        <div class="phm-funnel" id="phmFunnel"></div>
-      </div>
-    </div>
-  </main>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 "use strict";
@@ -997,14 +454,13 @@ function isFirstRecurrencyValue(val){
   if(/recorr|parcel|installment|subscription|assinatura|cobranca/.test(t)) return false;
   return true;
 }
+// ==================== CORREÇÃO PRINCIPAL AQUI ====================
 function isUniqueHotmartSale(r){
   // REGRA GLOBAL DE QTD DE VENDAS:
   // conta apenas venda única / primeira cobrança. Exemplos aceitos: vazio, 0, 1, 1.0, 1/12, 1ª, "parcela 1".
   // Exemplos excluídos: 2, 2/12, "parcela 2", "segunda cobrança".
   const val = getRecurrencyValue(r);
-  // Campo vazio não é prova de 1ª parcela. Em alguns exports da Hotmart a 6ª parcela
-  // chega com recurrency vazio; nesse caso deixamos cair para as pistas/heurística por valor.
-  if(val !== null && val !== undefined && String(val).trim() !== '') return isFirstRecurrencyValue(val);
+  if(val !== null && val !== undefined) return isFirstRecurrencyValue(val);
 
   // Quando a coluna exata não veio na Hotmart-Limpo, ainda tenta encontrar pista
   // em outras colunas e, por último, aplica uma heurística por valor do produto.
@@ -1012,9 +468,12 @@ function isUniqueHotmartSale(r){
   if(clue === 'later') return false;
   if(clue === 'first') return true;
 
-  if(isLikelyInstallmentAmountWithoutRecurrency(r)) return false;
+  // SÓ APLICA HEURÍSTICA DE VALOR SE A COLUNA DE RECORRÊNCIA EXISTIR
+  // (se não existir, considera tudo como venda única – a dedupe já resolve)
+  if(COLS.hotRecurrency && isLikelyInstallmentAmountWithoutRecurrency(r)) return false;
   return true;
 }
+// ===============================================================
 function normPhone(p){ if(!p) return ''; return String(p).replace(/\D/g,'').slice(-9); }
 // Extrai o código do criativo: "B04_PHM_FAZTUDO" → "B04" ; "B04" → "B04"
 function extractCode(s){
@@ -1029,55 +488,6 @@ function colFind(headers,patterns){
     const f=headers.find(h=>headerForms(h).some(form=>pat.test(form)));
     if(f) return f;
   }
-  return null;
-}
-
-function looksLikeMoneyValue(v){
-  const raw = String(v ?? '').trim();
-  if(!raw) return false;
-  const s = raw.replace(/[R$\s]/gi,'');
-  // valores tipo 239,34 | 1.395,36 | 1395.36 não são ID de transação.
-  return /^[+-]?\d{1,3}(\.\d{3})*,\d{2}$/.test(s) || /^[+-]?\d+,\d{2}$/.test(s) || /^[+-]?\d+\.\d{2}$/.test(s);
-}
-function looksLikeHotmartTxnValue(v){
-  const raw = String(v ?? '').trim();
-  if(!raw || looksLikeMoneyValue(raw)) return false;
-  const c = normCompact(raw).toUpperCase();
-  if(!c || c.length < 7) return false;
-  if(/^HP[A-Z0-9]{6,}$/.test(c)) return true;     // Ex.: HP4246047597
-  if(/[A-Z]/.test(c) && /\d/.test(c) && c.length >= 8) return true;
-  if(/^\d{9,}$/.test(c)) return true;
-  return false;
-}
-function transactionColumnScore(rows, col){
-  if(!col) return -999;
-  let score=0, seen=0;
-  for(const r of (rows||[]).slice(0,250)){
-    const raw = String(r[col] ?? '').trim();
-    if(!raw) continue;
-    seen++;
-    if(looksLikeHotmartTxnValue(raw)) score += 4;
-    else if(looksLikeMoneyValue(raw)) score -= 5;
-    else if(parseDate(raw)) score -= 4;
-    else if(/^\d{1,6}$/.test(raw)) score -= 2;
-    else score -= 1;
-  }
-  return seen ? score/seen : -999;
-}
-function chooseTxnColumn(headers, rows, detected){
-  const candidates=[];
-  if(detected) candidates.push(detected);
-  (headers||[]).forEach(h=>{
-    const n=normSpaced(h);
-    const good = /(transaction|transacao|transação|codigo|código|code|id|reference|referencia|referência|pedido|order)/.test(n);
-    const bad = /(value|valor|amount|price|preco|preço|status|date|data|email|phone|telefone|buyer|comprador|product|produto|recurrency|recorr|parcela|installment|revenue|receita)/.test(n);
-    if(good && !bad) candidates.push(h);
-  });
-  const uniq=[...new Set(candidates)];
-  let best=null, bestScore=-999;
-  uniq.forEach(c=>{ const sc=transactionColumnScore(rows,c); if(sc>bestScore){ bestScore=sc; best=c; } });
-  if(best && bestScore>0) return best;
-  if(detected && transactionColumnScore(rows,detected)>0) return detected;
   return null;
 }
 function setText(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
@@ -1138,8 +548,7 @@ function detectColumns(){
   COLS.hotPhone    = colFind(hh,[/buyer.?phone/,/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/]);
   // Transaction ID da Hotmart — IDENTIFICADOR ÚNICO DE COMPRA. Parcelas da mesma compra
   // compartilham o mesmo Transaction. Usado como prioridade #1 na chave de dedupe.
-  COLS.hotTxnId    = colFind(hh,[/^sales history transaction id$/,/^sales history transaction code$/,/^hotmart transaction id$/,/^hotmart transaction code$/,/^transaction id$/,/^transaction code$/,/^transaction key$/,/^sales history transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/sales.?history.?transaction.?key/,/^transaction$/,/transaction.?id/,/transaction.?code/,/transaction.?key/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
-  COLS.hotTxnId = chooseTxnColumn(hh, RAW.hotmart, COLS.hotTxnId);
+  COLS.hotTxnId    = colFind(hh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
   // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
@@ -1196,8 +605,7 @@ function detectColumns(){
     /revenue/,
     /valor/
   ]);
-  COLS.hotFullTxnId    = colFind(fh,[/^sales history transaction id$/,/^sales history transaction code$/,/^hotmart transaction id$/,/^hotmart transaction code$/,/^transaction id$/,/^transaction code$/,/^transaction key$/,/^sales history transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/sales.?history.?transaction.?key/,/^transaction$/,/transaction.?id/,/transaction.?code/,/transaction.?key/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
-  COLS.hotFullTxnId = chooseTxnColumn(fh, RAW.hotmartFull, COLS.hotFullTxnId);
+  COLS.hotFullTxnId    = colFind(fh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
   COLS.hotFullBuyer    = colFind(fh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotFullRecurrency = colFind(fh,[
     /^sales history recurrency number$/,
@@ -1233,8 +641,6 @@ function detectColumns(){
 
   // Aplica overrides manuais
   Object.keys(COL_OVERRIDE).forEach(k=>{ if(COL_OVERRIDE[k]) COLS[k]=COL_OVERRIDE[k]; });
-  if(!COL_OVERRIDE.hotTxnId) COLS.hotTxnId = chooseTxnColumn(hh, RAW.hotmart, COLS.hotTxnId);
-  if(!COL_OVERRIDE.hotFullTxnId) COLS.hotFullTxnId = chooseTxnColumn(fh, RAW.hotmartFull, COLS.hotFullTxnId);
 
   // SALVA-VIDAS DO FATURAMENTO: se a coluna de valor detectada somar R$ 0,00 nas
   // linhas aprovadas, procura automaticamente outra coluna que de fato tenha valor
@@ -1632,28 +1038,18 @@ function productSourceKey(name){
   // Ex.: "Formação Full Stack Marketing" e variações de maiúsculas/acentos viram a mesma chave.
   return normSpaced(name || '') || '__sem_produto__';
 }
-function sourceUniqueSaleKey(sale, idx){
-  // Chave de VENDA: usada só depois de filtrar 1ª parcela.
-  // Se houver um ID de transação Hotmart válido (HP...), ele manda. Se não houver,
-  // usamos comprador + data + produto para não contar parcela/duplicidade como compra nova.
-  const txn = looksLikeHotmartTxnValue(sale.txn) ? String(sale.txn).trim() : '';
-  if(txn) return sale.source+'|txn|'+txn;
+function sourceSaleKey(sale){
+  // Transaction ID continua sendo prioridade; quando não existe, usa comprador + data + produto.
+  if(sale.txn) return 'txn:'+sale.txn;
+  let identity = '';
+  if(sale.email) identity='mail:'+sale.email;
+  else if(sale.phone) identity='tel:'+sale.phone;
+  else if(sale.buyer) identity='name:'+sale.buyer;
+  else identity='anon';
   const d=(sale.date||'').slice(0,10);
   const p=productSourceKey(sale.product);
-  const identity = sale.email ? 'mail:'+sale.email : (sale.phone ? 'tel:'+sale.phone : (sale.buyer ? 'name:'+sale.buyer : ''));
-  if(identity) return sale.source+'|'+identity+'|'+d+'|'+p;
-  const v=Number(sale.value||0).toFixed(2);
-  return sale.source+'|anon|'+d+'|'+p+'|'+v+'|row:'+(idx ?? '');
+  return identity+'|'+d+'|'+p;
 }
-function sourceDiagnosticLineKey(sale, idx){
-  const identity = sale.txn || sale.email || sale.phone || sale.buyer || 'anon';
-  const d=(sale.date||'').slice(0,10);
-  const p=productSourceKey(sale.product);
-  const rec=(sale.recurrency===null || sale.recurrency===undefined) ? '' : String(sale.recurrency).trim();
-  const v=Number(sale.value||0).toFixed(2);
-  return sale.source+'|'+identity+'|'+d+'|'+p+'|'+sale.status+'|'+rec+'|'+v+'|row:'+(idx ?? '');
-}
-
 function getLimpoProductKeys(){
   const keys=new Set();
   RAW.hotmart.forEach(r=>{
@@ -1662,19 +1058,32 @@ function getLimpoProductKeys(){
   });
   return keys;
 }
+// ==================== CORREÇÃO PRINCIPAL AQUI ====================
 function isUniqueSourceSale(sale){
-  // Regra global: só venda única / primeira parcela entra na QTD e no CAC.
-  // Recurrency vazio NÃO é suficiente para contar como venda; pode ser parcela posterior
-  // em export limpo. Só confiamos no campo quando ele vem preenchido.
-  if(sale.recurrency !== null && sale.recurrency !== undefined && String(sale.recurrency).trim() !== '') return isFirstRecurrencyValue(sale.recurrency);
+  // Se a coluna de recorrência existe e tem valor, usa ela
+  if(sale.recurrency !== null && sale.recurrency !== undefined){
+    return isFirstRecurrencyValue(sale.recurrency);
+  }
+
+  // Se a coluna de recorrência NÃO existe para esta fonte, considera tudo como venda única
+  // (a dedupe por Transaction ID/email+data+produto já agrupa parcelas da mesma compra)
+  if((sale.source === 'limpo' && !COLS.hotRecurrency) ||
+     (sale.source === 'full' && !COLS.hotFullRecurrency)){
+    return true;
+  }
+
+  // Fallback (caso a coluna exista mas venha vazia) – tenta pistas textuais
   const clue = rowInstallmentClue(sale.raw);
   if(clue === 'later') return false;
   if(clue === 'first') return true;
-  // A heurística por valor só é aplicada com a Hotmart-Limpo, onde existe histórico
-  // de faturamento/parcelas por produto suficiente para comparar ticket cheio × parcela.
-  if(sale.source==='limpo' && isLikelyInstallmentAmountWithoutRecurrency(sale.raw)) return false;
+
+  // Último recurso: heurística por valor (só se a coluna existe, para não descartar à toa)
+  if(sale.source === 'limpo' && COLS.hotRecurrency && isLikelyInstallmentAmountWithoutRecurrency(sale.raw)) return false;
+  if(sale.source === 'full' && COLS.hotFullRecurrency && isLikelyInstallmentAmountWithoutRecurrency(sale.raw)) return false;
+
   return true;
 }
+// ===============================================================
 function salePassFilters(sale,f){
   if(!sale.date || sale.date<f.from || sale.date>f.to) return false;
   if(f.prods && !f.prods.includes(sale.product)) return false;
@@ -1685,38 +1094,43 @@ function filterGlobalHotmartSales(f){
   const limpoProductKeys=getLimpoProductKeys();
   const skippedFullProducts=new Set();
 
-  // REGRA CORRETA:
-  // • Vendas = só venda única / 1ª parcela do período.
-  // • Parcelas 2, 3, 4, 5, 6... NÃO entram na quantidade de vendas/CAC.
-  // • Faturamento bruto continua somando TODAS as parcelas/linhas de receita.
-  // • Hotmart-Limpo segue como fonte canônica; Hotmart-PHM entra apenas para produtos
-  //   que não existem na Hotmart-Limpo, evitando duplicidade de fonte.
-  RAW.hotmart.forEach((r,i)=>{
+  // REGRA CANÔNICA:
+  // 1) Hotmart-Limpo é a fonte oficial para produtos que já existem nela.
+  // 2) Hotmart-PHM entra SOMENTE para produtos ausentes na Hotmart-Limpo
+  //    (ex.: Plano Head de Marketing e produtos futuros que ainda não estiverem na aba limpa).
+  // Isso evita o erro de contar Full Stack pela Hotmart-PHM e comparar com o relatório
+  // da Hotmart-Limpo/faturamento, gerando 32 vendas quando a Hotmart mostra 27 transações.
+  RAW.hotmart.forEach(r=>{
     const sale=sourceSaleFields(r,'limpo');
     if(!salePassFilters(sale,f)) return;
     if(!isUniqueSourceSale(sale)) return;
-    sale.key=sourceUniqueSaleKey(sale,i);
-    sale.lineKey=sourceDiagnosticLineKey(sale,i);
+    sale.key=sourceSaleKey(sale);
     all.push(sale);
   });
-  RAW.hotmartFull.forEach((r,i)=>{
+  RAW.hotmartFull.forEach(r=>{
     const sale=sourceSaleFields(r,'full');
     if(!salePassFilters(sale,f)) return;
-    if(!isUniqueSourceSale(sale)) return;
     const pKey=productSourceKey(sale.product);
     if(limpoProductKeys.has(pKey)){
       if(sale.product) skippedFullProducts.add(sale.product);
       return;
     }
-    sale.key=sourceUniqueSaleKey(sale,i);
-    sale.lineKey=sourceDiagnosticLineKey(sale,i);
+    if(!isUniqueSourceSale(sale)) return;
+    sale.key=sourceSaleKey(sale);
     all.push(sale);
   });
 
+  const byKey=new Map();
+  all.forEach(sale=>{
+    if(!sale.key) return;
+    const old=byKey.get(sale.key);
+    if(!old || old.source!=='limpo') byKey.set(sale.key,sale);
+  });
+  const out=[...byKey.values()];
   if(skippedFullProducts.size){
     console.log('[dotb] Produtos ignorados da Hotmart-PHM na QTD global porque já existem na Hotmart-Limpo:', [...skippedFullProducts].sort());
   }
-  return all;
+  return out;
 }
 function countGlobalSales(rows){
   const seen=new Set();
@@ -1725,10 +1139,7 @@ function countGlobalSales(rows){
 }
 function productSalesSummary(rows){
   const by={};
-  const seen=new Set();
   rows.forEach(r=>{
-    if(r.key && seen.has(r.key)) return;
-    if(r.key) seen.add(r.key);
     const p=r.product||'(sem produto)';
     if(!by[p]) by[p]={produto:p,vendas:0, fontes:new Set()};
     by[p].vendas++;
@@ -1737,7 +1148,7 @@ function productSalesSummary(rows){
   return Object.values(by).sort((a,b)=>b.vendas-a.vendas || a.produto.localeCompare(b.produto));
 }
 
-// ═══ VENDAS × FATURAMENTO (todas as parcelas) POR PRODUTO ═══
+// ═══ VENDAS (1ª parcela) × FATURAMENTO (todas as parcelas) POR PRODUTO ═══
 // Para cada produto:
 //   • Vendas        = só venda única / 1ª parcela (isUniqueSourceSale) + dedupe por compra.
 //   • Faturamento   = soma de TODAS as transações do produto (1ª parcela + parcelas seguintes).
@@ -1749,10 +1160,10 @@ function productBreakdown(f){
 
   function bucketFor(name){
     const key = productSourceKey(name);
-    if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', saleKeys:new Set(), faturamento:0, parcelasDepoisPrimeira:0, fontes:new Set()};
+    if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', saleKeys:new Set(), faturamento:0, parcelas:0, fontes:new Set()};
     return byProduct[key];
   }
-  function consume(r, source, idx){
+  function consume(r, source){
     const sale = sourceSaleFields(r, source);
     if(!salePassFilters(sale, f)) return;
     // PHM só entra para produtos que NÃO existem na Hotmart-Limpo (mesma regra da QTD global)
@@ -1760,18 +1171,19 @@ function productBreakdown(f){
     const b = bucketFor(sale.product);
     b.fontes.add(sale.sourceName);
     b.faturamento += sale.value;          // FATURAMENTO: todas as parcelas
-    if(isUniqueSourceSale(sale)){
-      b.saleKeys.add(sourceUniqueSaleKey(sale, idx)); // VENDAS: só 1ª parcela + dedupe
+    if(isUniqueSourceSale(sale)){         // VENDAS: só 1ª parcela / venda única
+      sale.key = sourceSaleKey(sale);
+      if(sale.key) b.saleKeys.add(sale.key);
     }else{
-      b.parcelasDepoisPrimeira += 1;      // só diagnóstico
+      b.parcelas++;                       // parcelas seguintes → só no faturamento
     }
   }
 
-  RAW.hotmart.forEach((r,i)=>consume(r,'limpo',i));
-  RAW.hotmartFull.forEach((r,i)=>consume(r,'full',i));
+  RAW.hotmart.forEach(r=>consume(r,'limpo'));
+  RAW.hotmartFull.forEach(r=>consume(r,'full'));
 
   return Object.values(byProduct)
-    .map(b=>({produto:b.produto, vendas:b.saleKeys.size, faturamento:b.faturamento, parcelas:b.parcelasDepoisPrimeira, fontes:[...b.fontes].join(' + ')}))
+    .map(b=>({produto:b.produto, vendas:b.saleKeys.size, faturamento:b.faturamento, parcelas:b.parcelas, fontes:[...b.fontes].join(' + ')}))
     .filter(p=>p.vendas>0 || p.faturamento>0)
     .sort((a,b)=> b.faturamento - a.faturamento || b.vendas - a.vendas || a.produto.localeCompare(b.produto));
 }
@@ -1797,8 +1209,8 @@ function renderProductBreakdown(f){
   const tF = rows.reduce((s,p)=>s+p.faturamento,0);
   if(foot) foot.innerHTML='<tr><td class="cr-name">Total</td><td>'+fmtN(tV)+'</td><td>'+money2(tF)+'</td><td></td></tr>';
 
-  console.log('%c[dotb] Vendas × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
-  console.table(rows.map(p=>({Produto:p.produto,'Vendas':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas após 1ª (diagnóstico)':p.parcelas,'Fonte(s)':p.fontes})));
+  console.log('%c[dotb] Vendas (1ª parcela) × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
+  console.table(rows.map(p=>({Produto:p.produto,'Vendas (1ª parcela)':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas seguintes':p.parcelas,'Fonte(s)':p.fontes})));
 }
 
 // ═══ RENDER ═══
@@ -1822,8 +1234,8 @@ function render(){
   });
 
   // Hotmart aggregates
-  // Faturamento: soma todas as parcelas pela data/eixo selecionado.
-  // Vendas: conta só venda única / 1ª parcela, com dedupe por compra.
+  // Faturamento: soma todas as parcelas pela data de recebimento/transação.
+  // Vendas: conta apenas vendas únicas pela data da compra original.
   let bruto=0;
   hotRevenue.forEach(r=>{
     const v=parseMoney(r[COLS.hotValue]); bruto+=v;
@@ -1833,7 +1245,8 @@ function render(){
       dayData.bruto+=v;
     }
   });
-  // Vendas por dia usam a chave única da compra/1ª parcela.
+  // Vendas por dia também usam a chave de dedupe (Transaction ID se disponível, senão
+  // identidade + data truncada + produto). Mesma lógica do countUniqueSales.
   const daySaleKeys={};
   hotSales.forEach(sale=>{
     const d=sale.date;
@@ -1843,8 +1256,8 @@ function render(){
     const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
     if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
-  const vendas=countGlobalSales(hotSales);   // VENDAS globais: só 1ª parcela + dedupe
-  console.log('[dotb] Verificação RENDER - linhas de vendas:', hotSales.length);
+  const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart-Limpo + Hotmart-PHM, sem parcelas
+  console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
   const liquido=bruto-invest;
   const roas=invest>0?bruto/invest:0;      // ROAS = faturamento bruto (todas as parcelas) / investimento
   const cac=vendas>0?invest/vendas:0;      // CAC = investimento / vendas únicas
@@ -1861,22 +1274,22 @@ function render(){
   console.log(
     '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
     +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
-    +'  • Vendas finais globais (1ª parcela + dedupe): '+vendas+'\n'
+    +'  • Vendas únicas finais globais (fonte canônica + 1ª parcela + dedupe): '+vendas+'\n'
     +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
-    +'  • Linhas pré-dedupe de vendas (só 1ª parcela): '+hotSales.length+'\n'
+    +'  • Linhas pré-dedupe globais (fonte canônica + 1ª parcela): '+hotSales.length+'\n'
     +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
     'color:#4dffa7;font-weight:bold'
   );
 
   const prodSales=productSalesSummary(hotSales);
   if(prodSales.length){
-    console.log('%c[dotb] Vendas por produto (só 1ª parcela; Hotmart-Limpo + produtos exclusivos Hotmart-PHM):','color:#4dffa7;font-weight:bold');
-    console.table(prodSales.map(p=>({Produto:p.produto,'Vendas':p.vendas,'Fonte(s)':[...p.fontes].join(' + ')})));
+    console.log('%c[dotb] Vendas únicas por produto (regra global; Hotmart-Limpo + produtos exclusivos Hotmart-PHM):','color:#4dffa7;font-weight:bold');
+    console.table(prodSales.map(p=>({Produto:p.produto,'Vendas únicas':p.vendas,'Fonte(s)':[...p.fontes].join(' + ')})));
   }
 
   // Detalhe extra: lista as linhas que foram para a contagem de vendas únicas
   if(hotSales.length && hotSales.length < 40){
-    console.log('%c[dotb] Linhas usadas na contagem de vendas (só 1ª parcela; chave dedupe na última coluna):','color:#4dffa7');
+    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas (só 1ª parcela; chave dedupe na última coluna):','color:#4dffa7');
     console.table(hotSales.map(s=>({
       'Fonte': s.sourceName,
       'Buyer Name': s.buyer || '(vazio/não detectado)',
@@ -1887,8 +1300,7 @@ function render(){
       'Status': s.status || '',
       'Recurrency': (s.recurrency===null || s.recurrency===undefined || String(s.recurrency).trim()==='') ? '(vazio/sem recorrência)' : s.recurrency,
       'Valor': s.value,
-      'Chave dedupe': s.key,
-      'Chave linha diagnóstico': s.lineKey || ''
+      'Chave dedupe': s.key
     })));
   }
 
@@ -2230,5 +1642,3 @@ document.addEventListener('DOMContentLoaded',async()=>{
   setInterval(async()=>{ try{ await loadData(); }catch(e){console.warn('refresh:',e);} }, 30*60*1000);
 });
 </script>
-</body>
-</html>
