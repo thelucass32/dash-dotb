@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>dotb · Performance Dashboard</title>
-<!-- versão corrigida: vendas globais usam Hotmart-Limpo como fonte canônica por produto; Hotmart-PHM só para produtos exclusivos; QTD de vendas: Recurrency vazio/1, exceto Offer Payment Mode SUBSCRIPTION -->
+<!-- versão corrigida: vendas globais usam Hotmart-Limpo como fonte canônica por produto; Hotmart-PHM só para produtos exclusivos -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Halyard+Display:wght@300;400;500&display=swap" rel="stylesheet">
@@ -417,7 +417,7 @@ body:not(.auth-pending) .login-screen{display:none;}
 
     <!-- KPIs -->
     <div id="kpis" class="kpi-grid">
-      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">Recurrency 1/vazio + assinatura</div></div>
+      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">1ª parcela + vendas únicas</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Bruto</div><div class="kpi-val"><span class="cur">R$</span><span id="kBruto">—</span></div><div class="kpi-sub">transações únicas + parcelas</div></div>
       <div class="kpi"><div class="kpi-lbl">Investimento</div><div class="kpi-val"><span class="cur">R$</span><span id="kInvest">—</span></div><div class="kpi-sub">mídia paga</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Líquido</div><div class="kpi-val"><span class="cur">R$</span><span id="kLiquido">—</span></div><div class="kpi-sub" id="kLiquidoSub">—</div></div>
@@ -449,7 +449,7 @@ body:not(.auth-pending) .login-screen{display:none;}
           <div class="side-rates">
             <div class="sr-item l"><div class="sr-lbl">Connect Rate</div><div class="sr-val green" id="fConnRate">—</div><div class="sr-hint">visualização ÷ cliques</div></div>
             <div class="sr-item l"><div class="sr-lbl">Checkout / Visita</div><div class="sr-val" id="fCheckRate">—</div><div class="sr-hint">início checkout ÷ visualização</div></div>
-            <div class="sr-item l"><div class="sr-lbl">Conversão</div><div class="sr-val" id="fConvRate">—</div><div class="sr-hint">vendas pela regra Recurrency/Subscription ÷ visualizações de página</div></div>
+            <div class="sr-item l"><div class="sr-lbl">Conversão</div><div class="sr-val" id="fConvRate">—</div><div class="sr-hint">vendas únicas (excl. parcelas) ÷ visualizações de página</div></div>
           </div>
           <svg id="funnelSVG" viewBox="0 0 680 500" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -516,12 +516,12 @@ body:not(.auth-pending) .login-screen{display:none;}
 
     <!-- BREAKDOWN POR PRODUTO -->
     <div class="section" id="prod-breakdown-sec">
-      <div class="section-head"><h2 class="section-title">Vendas <em>por produto</em></h2><span class="section-tag">Vendas = Recurrency 1/vazio · Assinatura = SUBSCRIPTION</span></div>
+      <div class="section-head"><h2 class="section-title">Vendas <em>por produto</em></h2><span class="section-tag">Vendas = só 1ª parcela · Faturamento = todas as parcelas</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
             <th>Produto</th>
-            <th>Vendas (Recurrency 1/vazio)</th>
+            <th>Vendas (1ª parcela)</th>
             <th>Faturamento (todas)</th>
             <th>Fonte</th>
           </tr></thead>
@@ -588,11 +588,12 @@ const COL_OVERRIDE = {
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
   hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
   hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
-  hotRecurrency:'', // "Sales History Recurrency Number" — PREENCHA aqui se a detecção automática falhar
-  hotPaymentMode:'', // "Sales History Offer Payment Mode" — assinatura usa SUBSCRIPTION e não segue a regra de Recurrency
+  // ═══ CORREÇÃO: force o nome exato da coluna de recorrência ═══
+  hotRecurrency: 'Sales History Installments Number',  // <-- ADICIONADO
   // Hotmart-PHM também passa a alimentar a QTD global de vendas únicas.
   hotFullDate:'', hotFullDateBR:'', hotFullProd:'', hotFullStatus:'', hotFullValue:'',
-  hotFullEmail:'', hotFullPhone:'', hotFullTxnId:'', hotFullBuyer:'', hotFullRecurrency:'', hotFullPaymentMode:'',
+  hotFullEmail:'', hotFullPhone:'', hotFullTxnId:'', hotFullBuyer:'',
+  hotFullRecurrency:'', // será detectada automaticamente como "Sales History Recurrency Number"
   phmEmail:'', phmPhone:''
 };
 
@@ -970,10 +971,9 @@ function hotStatusGroup(st){
   if(s.includes('complet') || s.includes('conclu')) return 'completed';
   return s || '__blank__';
 }
-// Venda na Hotmart para QTD/CAC:
-// REGRA GLOBAL: Sales History Recurrency Number deve estar em branco OU representar a cobrança 1.
-// EXCEÇÃO: quando Sales History Offer Payment Mode = SUBSCRIPTION, a linha entra como venda
-// sem aplicar a regra de Recurrency. O faturamento continua somando todas as transações/parcelas.
+// Venda única na Hotmart: conta somente a primeira cobrança da assinatura/recorrência.
+// Regra solicitada: Sales History Recurrency Number = vazio ou exatamente 1.
+// O faturamento soma o valor recebido da linha: parcela recebida ou valor recebido da venda única.
 function getRecurrencyValue(r){
   if(!r) return null;
   if(COLS.hotRecurrency && Object.prototype.hasOwnProperty.call(r, COLS.hotRecurrency)) return r[COLS.hotRecurrency];
@@ -985,37 +985,24 @@ function getRecurrencyValue(r){
   const auto = Object.keys(r).find(isRecurrencyHeader);
   return auto ? r[auto] : null;
 }
-function getPaymentModeValue(r){
-  if(!r) return '';
-  if(COLS.hotPaymentMode && Object.prototype.hasOwnProperty.call(r, COLS.hotPaymentMode)) return r[COLS.hotPaymentMode];
-  if(COLS.hotPaymentMode){
-    const wanted = normCompact(COLS.hotPaymentMode);
-    const equivalent = Object.keys(r).find(k=>normCompact(k)===wanted);
-    if(equivalent) return r[equivalent];
-  }
-  const auto = Object.keys(r).find(k=>/sales.?history.*offer.*payment.*mode|offer.*payment.*mode|payment.?mode|modo.*pagamento/i.test(normSpaced(k)));
-  return auto ? r[auto] : '';
-}
-function isSubscriptionPaymentMode(val){
-  return normCompact(val) === 'subscription';
-}
 function isFirstRecurrencyValue(val){
   if(val === undefined || val === null) return true;
   const raw = String(val).trim();
-  if(raw === '') return true;
+  if(raw === '' || raw === '0') return true; // venda única/sem recorrência
   const t = normSpaced(raw);
   if(!t) return true;
+  if(/\b(one time|single|unica|unico|avulsa|avista|a vista)\b/.test(t)) return true;
   if(/\b(first|primeira|primeiro)\b/.test(t)) return true;
-  if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto|sexta|sexto)\b/.test(t)) return false;
+  if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto)\b/.test(t)) return false;
   const m = t.match(/\d+/);
-  if(m) return parseInt(m[0],10) === 1; // aceita 1, 01, 1/12, 1ª, parcela 1; rejeita 0 e 2/12+
-  return false;
+  if(m) return parseInt(m[0],10) <= 1; // aceita 1, 01, 1/12, 1ª, parcela 1; rejeita 2/12+
+  if(/recorr|parcel|installment|subscription|assinatura|cobranca/.test(t)) return false;
+  return true;
 }
 function isUniqueHotmartSale(r){
-  // Exceção solicitada: produto/oferta em modo SUBSCRIPTION entra na QTD sem aplicar Recurrency.
-  if(isSubscriptionPaymentMode(getPaymentModeValue(r))) return true;
-
-  // Regra global da QTD de vendas: Recurrency vazio ou 1.
+  // REGRA GLOBAL DE QTD DE VENDAS:
+  // conta apenas venda única / primeira cobrança. Exemplos aceitos: vazio, 0, 1, 1.0, 1/12, 1ª, "parcela 1".
+  // Exemplos excluídos: 2, 2/12, "parcela 2", "segunda cobrança".
   const val = getRecurrencyValue(r);
   if(val !== null && val !== undefined) return isFirstRecurrencyValue(val);
 
@@ -1025,7 +1012,9 @@ function isUniqueHotmartSale(r){
   if(clue === 'later') return false;
   if(clue === 'first') return true;
 
-  if(isLikelyInstallmentAmountWithoutRecurrency(r)) return false;
+  // SÓ APLICA HEURÍSTICA DE VALOR SE A COLUNA DE RECORRÊNCIA EXISTIR
+  // (se não existir, considera tudo como venda única – a dedupe já resolve)
+  if(COLS.hotRecurrency && isLikelyInstallmentAmountWithoutRecurrency(r)) return false;
   return true;
 }
 function normPhone(p){ if(!p) return ''; return String(p).replace(/\D/g,'').slice(-9); }
@@ -1106,6 +1095,7 @@ function detectColumns(){
   // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
+  // Tenta detectar a coluna de recorrência, mas o override já a define.
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
     /sales.?history.*recurrency.*number/,
@@ -1134,15 +1124,6 @@ function detectColumns(){
   if(!COLS.hotRecurrency){
     COLS.hotRecurrency = hh.find(isRecurrencyHeader) || null;
   }
-  COLS.hotPaymentMode = colFind(hh,[
-    /^sales history offer payment mode$/,
-    /sales.?history.*offer.*payment.*mode/,
-    /offer.*payment.*mode/,
-    /^payment.?mode$/,
-    /payment.?mode/,
-    /modo.*pagamento/,
-    /forma.*pagamento/
-  ]);
 
   // Aba Hotmart COMPLETA/PHM — também usada para QTD global de vendas únicas.
   COLS.hotFullDate     = colFind(fh,[/^sales history order date$/,/^purchase order date$/,/order.?date/,/purchase.?order.?date/,/purchase.?date/,/data.*venda/,/^date$/,/created/]);
@@ -1198,15 +1179,6 @@ function detectColumns(){
   if(!COLS.hotFullRecurrency){
     COLS.hotFullRecurrency = fh.find(isRecurrencyHeader) || null;
   }
-  COLS.hotFullPaymentMode = colFind(fh,[
-    /^sales history offer payment mode$/,
-    /sales.?history.*offer.*payment.*mode/,
-    /offer.*payment.*mode/,
-    /^payment.?mode$/,
-    /payment.?mode/,
-    /modo.*pagamento/,
-    /forma.*pagamento/
-  ]);
 
   COLS.phmEmail    = colFind(ph,[/e-?mail/,/email/]);
   COLS.phmPhone    = colFind(ph,[/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/,/n[uú]mero/]);
@@ -1242,11 +1214,9 @@ function detectColumns(){
   if(!COLS.hotTxnId && !COLS.hotEmail) console.warn('[dotb] ⚠ Sem Transaction ID nem Email — dedupe vai usar Buyer Name; se também faltar, vai colapsar por data da compra + produto para não inflar CAC.');
   if(!COLS.hotRecurrency) console.warn('[dotb] ⚠ Coluna de recorrência não detectada. Ativei fallback conservador: procura pistas de parcela em outras colunas e ignora valores muito menores que o ticket típico do produto para não inflar CAC. Para máxima precisão, mantenha a coluna Sales History Recurrency Number na aba Hotmart-Limpo.');
   else console.log('[dotb] Coluna de recorrência detectada:', COLS.hotRecurrency);
-  console.log('[dotb] Coluna Offer Payment Mode Hotmart-Limpo:', COLS.hotPaymentMode || '(não detectada)');
   console.log('[dotb] Cabeçalhos Meta:', mh);
   console.log('[dotb] Cabeçalhos Hotmart (limpo):', hh);
   console.log('[dotb] Coluna recorrência Hotmart-PHM:', COLS.hotFullRecurrency||'(não detectada)');
-  console.log('[dotb] Coluna Offer Payment Mode Hotmart-PHM:', COLS.hotFullPaymentMode || '(não detectada)');
   console.log('[dotb] Cabeçalhos Hotmart (completo/PHM):', fh);
   console.log('[dotb] Cabeçalhos PHM:', ph);
 
@@ -1567,14 +1537,14 @@ function getSourceCols(source){
       name:'Hotmart-PHM', date:COLS.hotFullDate, dateBR:COLS.hotFullDateBR, prod:COLS.hotFullProd,
       status:COLS.hotFullStatus, value:COLS.hotFullValue, email:COLS.hotFullEmail,
       phone:COLS.hotFullPhone, txn:COLS.hotFullTxnId, buyer:COLS.hotFullBuyer,
-      recurrency:COLS.hotFullRecurrency, paymentMode:COLS.hotFullPaymentMode
+      recurrency:COLS.hotFullRecurrency
     };
   }
   return {
     name:'Hotmart-Limpo', date:COLS.hotDate, dateBR:COLS.hotDateBR, prod:COLS.hotProd,
     status:COLS.hotStatus, value:COLS.hotValue, email:COLS.hotEmail,
     phone:COLS.hotPhone, txn:COLS.hotTxnId, buyer:COLS.hotBuyer,
-    recurrency:COLS.hotRecurrency, paymentMode:COLS.hotPaymentMode
+    recurrency:COLS.hotRecurrency
   };
 }
 function sourceHotDate(r, c){
@@ -1594,17 +1564,6 @@ function sourceRecurrencyValue(r, c){
   const auto = Object.keys(r).find(isRecurrencyHeader);
   return auto ? r[auto] : null;
 }
-function sourcePaymentModeValue(r, c){
-  if(!r) return '';
-  if(c.paymentMode && Object.prototype.hasOwnProperty.call(r, c.paymentMode)) return r[c.paymentMode];
-  if(c.paymentMode){
-    const wanted = normCompact(c.paymentMode);
-    const equivalent = Object.keys(r).find(k=>normCompact(k)===wanted);
-    if(equivalent) return r[equivalent];
-  }
-  const auto = Object.keys(r).find(k=>/sales.?history.*offer.*payment.*mode|offer.*payment.*mode|payment.?mode|modo.*pagamento/i.test(normSpaced(k)));
-  return auto ? r[auto] : '';
-}
 function sourceSaleFields(r, source){
   const c=getSourceCols(source);
   const date=sourceHotDate(r,c);
@@ -1616,8 +1575,7 @@ function sourceSaleFields(r, source){
   const value=c.value ? parseMoney(r[c.value]) : 0;
   const status=hotStatusGroup(c.status ? r[c.status] : '');
   const recurrency=sourceRecurrencyValue(r,c);
-  const paymentMode=sourcePaymentModeValue(r,c);
-  return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, status, recurrency, paymentMode};
+  return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, status, recurrency};
 }
 function productSourceKey(name){
   // Normaliza o nome do produto para comparar a mesma oferta entre fontes diferentes.
@@ -1644,21 +1602,32 @@ function getLimpoProductKeys(){
   });
   return keys;
 }
+// ==================== CORREÇÃO PRINCIPAL ====================
 function isUniqueSourceSale(sale){
-  // Exceção solicitada: assinatura (Offer Payment Mode = SUBSCRIPTION) entra na QTD
-  // sem aplicar a regra do Recurrency Number.
-  if(isSubscriptionPaymentMode(sale.paymentMode)) return true;
+  // Se a coluna de recorrência existe e tem valor, usa ela
+  if(sale.recurrency !== null && sale.recurrency !== undefined){
+    return isFirstRecurrencyValue(sale.recurrency);
+  }
 
-  // Regra global: Recurrency Number vazio ou cobrança 1 entra na QTD e no CAC.
-  if(sale.recurrency !== null && sale.recurrency !== undefined) return isFirstRecurrencyValue(sale.recurrency);
+  // Se a coluna de recorrência NÃO existe para esta fonte, considera tudo como venda única
+  // (a dedupe por Transaction ID/email+data+produto já agrupa parcelas da mesma compra)
+  if((sale.source === 'limpo' && !COLS.hotRecurrency) ||
+     (sale.source === 'full' && !COLS.hotFullRecurrency)){
+    return true;
+  }
+
+  // Fallback (caso a coluna exista mas venha vazia) – tenta pistas textuais
   const clue = rowInstallmentClue(sale.raw);
   if(clue === 'later') return false;
   if(clue === 'first') return true;
-  // A heurística por valor só é aplicada com a Hotmart-Limpo, onde existe histórico
-  // de faturamento/parcelas por produto suficiente para comparar ticket cheio × parcela.
-  if(sale.source==='limpo' && isLikelyInstallmentAmountWithoutRecurrency(sale.raw)) return false;
+
+  // Último recurso: heurística por valor (só se a coluna existe, para não descartar à toa)
+  if(sale.source === 'limpo' && COLS.hotRecurrency && isLikelyInstallmentAmountWithoutRecurrency(sale.raw)) return false;
+  if(sale.source === 'full' && COLS.hotFullRecurrency && isLikelyInstallmentAmountWithoutRecurrency(sale.raw)) return false;
+
   return true;
 }
+// ===============================================================
 function salePassFilters(sale,f){
   if(!sale.date || sale.date<f.from || sale.date>f.to) return false;
   if(f.prods && !f.prods.includes(sale.product)) return false;
@@ -1725,7 +1694,7 @@ function productSalesSummary(rows){
 
 // ═══ VENDAS (1ª parcela) × FATURAMENTO (todas as parcelas) POR PRODUTO ═══
 // Para cada produto:
-//   • Vendas        = Recurrency vazio/1 + dedupe por compra; SUBSCRIPTION não aplica Recurrency.
+//   • Vendas        = só venda única / 1ª parcela (isUniqueSourceSale) + dedupe por compra.
 //   • Faturamento   = soma de TODAS as transações do produto (1ª parcela + parcelas seguintes).
 // Mesma regra canônica das demais seções: Hotmart-Limpo manda; Hotmart-PHM só entra
 // para produtos que ainda NÃO existem na aba limpa.
@@ -1746,7 +1715,7 @@ function productBreakdown(f){
     const b = bucketFor(sale.product);
     b.fontes.add(sale.sourceName);
     b.faturamento += sale.value;          // FATURAMENTO: todas as parcelas
-    if(isUniqueSourceSale(sale)){         // VENDAS: Recurrency vazio/1; SUBSCRIPTION é exceção
+    if(isUniqueSourceSale(sale)){         // VENDAS: só 1ª parcela / venda única
       sale.key = sourceSaleKey(sale);
       if(sale.key) b.saleKeys.add(sale.key);
     }else{
@@ -1784,439 +1753,10 @@ function renderProductBreakdown(f){
   const tF = rows.reduce((s,p)=>s+p.faturamento,0);
   if(foot) foot.innerHTML='<tr><td class="cr-name">Total</td><td>'+fmtN(tV)+'</td><td>'+money2(tF)+'</td><td></td></tr>';
 
-  console.log('%c[dotb] Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
-  console.table(rows.map(p=>({Produto:p.produto,'Vendas (Recurrency 1/vazio)':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas seguintes':p.parcelas,'Fonte(s)':p.fontes})));
+  console.log('%c[dotb] Vendas (1ª parcela) × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
+  console.table(rows.map(p=>({Produto:p.produto,'Vendas (1ª parcela)':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas seguintes':p.parcelas,'Fonte(s)':p.fontes})));
 }
 
 // ═══ RENDER ═══
 function render(){
-  if(!RAW.meta.length && !RAW.hotmart.length){ return; }
-  const f=getFilters();
-  const meta=filterMeta(f);
-  const hotRevenue=filterHotmartRevenue(f);
-  const hotSales=filterGlobalHotmartSales(f);
-
-  // Meta aggregates
-  let invest=0,impr=0,clicks=0,pviews=0,checkout=0,purchMeta=0,purchValMeta=0;
-  const byDay={};
-  meta.forEach(r=>{
-    const sp=parseMoney(r[COLS.metaSpend]);
-    invest+=sp; impr+=num(r[COLS.metaImpr]); clicks+=num(r[COLS.metaClick]);
-    pviews+=num(r[COLS.metaPageView]); checkout+=num(r[COLS.metaCheckout]);
-    purchMeta+=num(r[COLS.metaPurch]); purchValMeta+=parseMoney(r[COLS.metaPurchVal]);
-    const d=parseDate(r[COLS.metaDate]);
-    if(d){ (byDay[d]=byDay[d]||{invest:0,bruto:0}).invest+=sp; }
-  });
-
-  // Hotmart aggregates
-  // Faturamento: soma todas as parcelas pela data de recebimento/transação.
-  // Vendas: conta apenas vendas únicas pela data da compra original.
-  let bruto=0;
-  hotRevenue.forEach(r=>{
-    const v=parseMoney(r[COLS.hotValue]); bruto+=v;
-    const d=hotKpiDate(r);
-    if(d){
-      const dayData = (byDay[d]=byDay[d]||{invest:0,bruto:0,vendas:0});
-      dayData.bruto+=v;
-    }
-  });
-  // Vendas por dia também usam a chave de dedupe (Transaction ID se disponível, senão
-  // identidade + data truncada + produto). Mesma lógica do countUniqueSales.
-  const daySaleKeys={};
-  hotSales.forEach(sale=>{
-    const d=sale.date;
-    if(!d) return;
-    const dayData = (byDay[d]=byDay[d]||{invest:0,bruto:0,vendas:0});
-    const k = sale.key;
-    const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
-    if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
-  });
-  const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart-Limpo + Hotmart-PHM, sem parcelas
-  console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
-  const liquido=bruto-invest;
-  const roas=invest>0?bruto/invest:0;      // ROAS = faturamento bruto (todas as parcelas) / investimento
-  const cac=vendas>0?invest/vendas:0;      // CAC = investimento / vendas únicas
-  const cpm=impr>0?(invest/impr)*1000:0;
-  const cpc=clicks>0?invest/clicks:0;
-  const cpv=pviews>0?invest/pviews:0;
-  const cpck=checkout>0?invest/checkout:0;
-  const cpa=vendas>0?invest/vendas:0;      // CPA = investimento / vendas únicas
-  const connRate=clicks>0?pviews/clicks:0;          // Connect Rate = Visualização de página / Link Clicks
-  const checkRate=pviews>0?checkout/pviews:0;        // Início de checkout / Visualização de página
-  const convRate=pviews>0?vendas/pviews:0; // Taxa de conversão = vendas únicas / visualizações de página
-
-  // Log de diagnóstico por período filtrado
-  console.log(
-    '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
-    +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
-    +'  • Vendas únicas finais globais (fonte canônica + 1ª parcela + dedupe): '+vendas+'\n'
-    +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
-    +'  • Linhas pré-dedupe globais (fonte canônica + regra Recurrency/Subscription): '+hotSales.length+'\n'
-    +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
-    'color:#4dffa7;font-weight:bold'
-  );
-
-  const prodSales=productSalesSummary(hotSales);
-  if(prodSales.length){
-    console.log('%c[dotb] Vendas únicas por produto (regra global; Hotmart-Limpo + produtos exclusivos Hotmart-PHM):','color:#4dffa7;font-weight:bold');
-    console.table(prodSales.map(p=>({Produto:p.produto,'Vendas únicas':p.vendas,'Fonte(s)':[...p.fontes].join(' + ')})));
-  }
-
-  // Detalhe extra: lista as linhas que foram para a contagem de vendas únicas
-  if(hotSales.length && hotSales.length < 40){
-    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas (só 1ª parcela; chave dedupe na última coluna):','color:#4dffa7');
-    console.table(hotSales.map(s=>({
-      'Fonte': s.sourceName,
-      'Buyer Name': s.buyer || '(vazio/não detectado)',
-      'Transaction': s.txn || '(vazio/não detectado)',
-      'Data venda': s.date || '',
-      'Email': s.email || '',
-      'Produto': s.product || '',
-      'Status': s.status || '',
-      'Recurrency': (s.recurrency===null || s.recurrency===undefined || String(s.recurrency).trim()==='') ? '(vazio/sem recorrência)' : s.recurrency,
-      'Offer Payment Mode': s.paymentMode || '(vazio/não detectado)',
-      'Valor': s.value,
-      'Chave dedupe': s.key
-    })));
-  }
-
-  // KPIs
-  setText('kVendas',fmtN(vendas));
-  setText('kBruto',fmtM(bruto));
-  setText('kInvest',fmtM(invest));
-  setText('kLiquido',fmtM(Math.abs(liquido)));
-  document.getElementById('kLiquidoSub').innerHTML = liquido>=0 ? '<span class="badge badge-green">▲ lucro</span>' : '<span class="badge badge-red">▼ prejuízo</span>';
-  setText('kROAS',fmtR(roas));
-  setText('kCAC',fmtM(cac));
-
-  // Funil Meta
-  setText('fImpressoes',fmtN(impr));
-  setText('fCliques',fmtN(clicks));
-  setText('fPageViews',fmtN(pviews));
-  setText('fCheckout',fmtN(checkout));
-  setText('fVendas',fmtN(vendas));
-  setText('fCPMr','R$ '+fmtM(cpm));
-  setText('fCPCr','R$ '+fmtM(cpc));
-  setText('fCPVr','R$ '+fmtM(cpv));
-  setText('fCPC2r','R$ '+fmtM(cpck));
-  setText('fCPAr','R$ '+fmtM(cpa));
-  setText('fConnRate',fmtP(connRate));
-  setText('fCheckRate',fmtP(checkRate));
-  setText('fConvRate',fmtP(convRate));
-
-  // Chart
-  renderChart(byDay);
-
-  // Table — criativos Meta Ads × vendas do próprio Meta Ads (sem cruzar com Hotmart/SCK)
-  renderTable(meta);
-
-  // Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto
-  renderProductBreakdown(f);
-
-  // Funil PHM
-  renderPHM();
-}
-
-// ═══ CHART ═══
-function renderChart(byDay){
-  const days=Object.keys(byDay).sort();
-  const fat=days.map(d=>byDay[d].bruto||0);
-  const inv=days.map(d=>byDay[d].invest||0);
-  const rs=days.map((d,i)=>inv[i]>0?fat[i]/inv[i]:0);
-  const ctx=document.getElementById('chartDaily').getContext('2d');
-  if(chartInstance) chartInstance.destroy();
-  chartInstance=new Chart(ctx,{
-    type:'line',
-    data:{labels:days,datasets:[
-      {label:'Faturamento',data:fat,borderColor:'#4dffa7',backgroundColor:'rgba(77,255,167,.06)',borderWidth:2,tension:.35,pointRadius:2,fill:true,yAxisID:'y'},
-      {label:'Investimento',data:inv,borderColor:'#e8a13c',backgroundColor:'rgba(232,161,60,.06)',borderWidth:2,tension:.35,pointRadius:2,fill:true,yAxisID:'y'},
-      {label:'ROAS',data:rs,borderColor:'#3b8bff',borderWidth:1.5,tension:.35,pointRadius:2,borderDash:[4,3],yAxisID:'y2'}
-    ]},
-    options:{
-      responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c1c19',borderColor:'#2e2e2b',borderWidth:1,titleColor:'#f6f4ef',bodyColor:'#aaa',padding:10,callbacks:{label:c=>c.dataset.label==='ROAS'?' ROAS: '+fmtR(c.raw):' '+c.dataset.label+': R$ '+fmtM(c.raw)}}},
-      scales:{
-        x:{grid:{color:'#2e2e2b'},ticks:{color:'#55554f',font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:12}},
-        y:{grid:{color:'#2e2e2b'},ticks:{color:'#888',font:{size:9},callback:v=>'R$'+fmtN(v)},position:'left'},
-        y2:{grid:{display:false},ticks:{color:'#3b8bff',font:{size:9},callback:v=>v.toFixed(1)+'x'},position:'right'}
-      }
-    }
-  });
-}
-
-// ═══ TABLE — criativos Meta Ads × vendas do próprio Meta Ads ═══
-// A tabela abaixo NÃO cruza com Hotmart/SCK. A coluna Vendas vem direto do Meta Ads
-// pela coluna COLS.metaPurch, travada como "Action Omni Purchase".
-function renderTable(meta){
-  // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
-  const byCode={};
-  meta.forEach(r=>{
-    const fullName=(r[COLS.metaAd]||r[COLS.metaCamp]||'Sem nome');
-    const code=extractCode(fullName)||fullName.toUpperCase();
-    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendas:0,permalink:'',thumb:''};
-    a.names.add(fullName);
-    a.invest+=parseMoney(r[COLS.metaSpend]);
-    a.impr+=num(r[COLS.metaImpr]);
-    a.clicks+=num(r[COLS.metaClick]);   // CLIQUES = Link Clicks
-    a.vendas+=num(r[COLS.metaPurch]);   // VENDAS = Action Omni Purchase do Meta Ads
-    if(!a.permalink){ const pl=String(r[COLS.metaPermalink]||'').trim(); if(pl) a.permalink=pl; }
-    if(!a.thumb){ const th=String(r[COLS.metaThumb]||'').trim(); if(th) a.thumb=th; }
-  });
-
-  console.log('%c[dotb] Tabela Criativos vs KPIs usando vendas do Meta Ads (sem Hotmart/SCK).','color:#89cc72;font-weight:bold');
-  console.log('%c[dotb] Coluna de vendas Meta detectada:','color:#89cc72', COLS.metaPurch||'(não detectada)');
-
-  const rows=Object.values(byCode);
-  // Monta as linhas com todas as métricas já calculadas
-  TABLE_ROWS=rows.map(m=>{
-    const ctr=m.impr>0?m.clicks/m.impr:0;          // CTR = Link Clicks / Impressões
-    const cpc=m.clicks>0?m.invest/m.clicks:0;       // CPC = Investimento / Link Clicks
-    return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
-            ctr, cpc, vendas:m.vendas, permalink:m.permalink, thumb:m.thumb};
-  });
-  // Totais (independentes da ordenação)
-  let tI=0,tImp=0,tC=0,tV=0;
-  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas; });
-  TABLE_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV};
-  paintTable();
-}
-
-// Ordena e desenha a tabela conforme SORT
-function paintTable(){
-  const body=document.getElementById('tblCreativos');
-  const foot=document.getElementById('tblFoot');
-  if(!TABLE_ROWS.length){
-    body.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
-    foot.innerHTML=''; updateSortIndicators(); return;
-  }
-  const {key,dir}=SORT, mul=dir==='asc'?1:-1;
-  const sorted=[...TABLE_ROWS].sort((a,b)=>{
-    if(key==='code'||key==='name'){ return mul*String(a[key]).localeCompare(String(b[key]),'pt-BR'); }
-    let x=a[key], y=b[key];
-    x=(x===null||x===undefined)?-Infinity:x;
-    y=(y===null||y===undefined)?-Infinity:y;
-    return mul*(x-y);
-  });
-  body.innerHTML=sorted.map(m=>{
-    const label='<strong style="color:var(--off)">'+m.code+'</strong> <span style="color:var(--gray-2);font-size:10px">'+(m.name!==m.code?m.name:'')+'</span>';
-    const thumbCell=m.thumb?'<img class="cr-thumb" src="'+escAttr(m.thumb)+'" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="dotbImgFail(this)">':'<span class="cr-noimg">—</span>';
-    const linkCell=m.permalink?'<a class="ig-link" href="'+escAttr(m.permalink)+'" target="_blank" rel="noopener" title="Abrir no Instagram">'+IG_SVG+'</a>':'<span style="color:var(--gray-2)">—</span>';
-    return '<tr>'+
-      '<td class="cr-thumb-cell">'+thumbCell+'</td>'+
-      '<td class="cr-name" title="'+escAttr(m.name)+'">'+label+'</td>'+
-      '<td>'+money0(m.invest)+'</td>'+
-      '<td>'+fmtN(m.impr)+'</td>'+
-      '<td>'+fmtN(m.clicks)+'</td>'+
-      '<td>'+fmtP(m.ctr)+'</td>'+
-      '<td>'+money2(m.cpc)+'</td>'+
-      '<td>'+fmtN(m.vendas)+'</td>'+
-      '<td>'+linkCell+'</td>'+
-    '</tr>';
-  }).join('');
-  const t=TABLE_TOTALS;
-  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td></td></tr>';
-  updateSortIndicators();
-}
-
-// Atualiza as setinhas ▲▼ nos cabeçalhos
-function updateSortIndicators(){
-  document.querySelectorAll('#table-sec th.sortable').forEach(th=>{
-    const active=th.dataset.sort===SORT.key;
-    th.classList.toggle('sort-active',active);
-    const car=th.querySelector('.sort-caret');
-    if(car) car.textContent = active ? (SORT.dir==='asc'?'▲':'▼') : '';
-  });
-}
-
-// ═══ FUNIL PHM ═══
-function renderPHM(){
-  const wrap=document.getElementById('phmFunnel');
-  if(!RAW.phm.length){ wrap.innerHTML='<div class="empty"><div class="big">∅</div>Sem dados de Lead PHM</div>'; return; }
-  if(!RAW.hotmartFull.length){ wrap.innerHTML='<div class="empty"><div class="big">∅</div>Sem dados da Hotmart-PHM</div>'; return; }
-
-  const norm = s => String(s||'').toLowerCase().trim();
-  const matchKw = (name,kws) => kws.some(k=>name.includes(k));
-
-  // Fonte do cruzamento PHM: aba Hotmart específica (gid 721086669), conforme solicitado.
-  const src = RAW.hotmartFull;
-  const cEmail  = COLS.hotFullEmail;
-  const cProd   = COLS.hotFullProd;
-  const cStatus = COLS.hotFullStatus;
-
-  // 1) Indexa compradores da Hotmart-PHM SOMENTE com status approved/completed.
-  // Cruzamento feito exclusivamente por e-mail: Sales History Buyer Email.
-  const phmEmails=new Set();
-  const fullEmails=new Set();
-  const allProds=new Set();
-  let buyersApproved=0;
-  src.forEach(r=>{
-    const sale=sourceSaleFields(r,'full');
-    const st=sale.status;
-    if(!['approved','completed'].includes(st)) return;
-    // No funil, também respeitamos a regra global de Recurrency vazio/1, com exceção para SUBSCRIPTION.
-    if(!isUniqueSourceSale(sale)) return;
-    buyersApproved++;
-    const email=norm(sale.email || (cEmail ? r[cEmail] : ''));
-    const prod=norm(sale.product || (cProd ? r[cProd] : ''));
-    if(prod) allProds.add(prod);
-    if(!email) return;
-    if(matchKw(prod,PHM_PRODUCTS.phm))  phmEmails.add(email);
-    if(matchKw(prod,PHM_PRODUCTS.full)) fullEmails.add(email);
-  });
-
-  // 2) Base do funil: leads PHM únicos por e-mail.
-  const leadEmails=new Set();
-  let leadRows=0, leadRowsWithEmail=0;
-  RAW.phm.forEach(r=>{
-    leadRows++;
-    const email=norm(r[COLS.phmEmail]);
-    if(email){ leadRowsWithEmail++; leadEmails.add(email); }
-  });
-
-  // 3) Fluxo sequencial:
-  // Lead PHM → comprou Plano Head de Marketing → comprou Full Stack Marketing.
-  // O último estágio conta apenas quem era lead PHM E também comprou PHM E Full Stack.
-  let boughtPHM=0, boughtFullAfterPHM=0;
-  leadEmails.forEach(email=>{
-    const hasPHM=phmEmails.has(email);
-    const hasFull=fullEmails.has(email);
-    if(hasPHM) boughtPHM++;
-    if(hasPHM && hasFull) boughtFullAfterPHM++;
-  });
-
-  const leads=leadEmails.size;
-  const prodList=[...allProds];
-
-  // ── Diagnóstico ──
-  console.log('%c[dotb] ── Funil PHM ──','color:#89cc72;font-weight:bold');
-  console.log('[dotb] Fonte de compras: Hotmart-PHM (gid 721086669)');
-  console.log('[dotb] Colunas usadas → lead email:',COLS.phmEmail,'| buyer email:',cEmail,'| produto:',cProd,'| status:',cStatus);
-  console.log('[dotb] Linhas Lead PHM:',leadRows,'| linhas com e-mail:',leadRowsWithEmail,'| leads únicos por e-mail:',leads);
-  console.log('[dotb] Linhas Hotmart approved/completed e 1ª parcela:',buyersApproved);
-  console.log('[dotb] Compradores Plano Head de Marketing (e-mail único):',phmEmails.size,'| Full Stack Marketing (e-mail único):',fullEmails.size);
-  console.log('[dotb] Leads que compraram PHM:',boughtPHM,'| Leads que compraram PHM + Full Stack:',boughtFullAfterPHM);
-  console.log('[dotb] Produtos encontrados na Hotmart-PHM:',prodList);
-  if(!cEmail || !cProd || !cStatus) console.warn('[dotb] ⚠ Verifique os cabeçalhos da Hotmart-PHM. Esperado: Sales History Buyer Email, Sales History Product Name e Sales History Transaction Status.');
-  if(buyersApproved===0) console.warn('[dotb] ⚠ Nenhuma compra approved/completed indexada na Hotmart-PHM.');
-  if(leads===0) console.warn('[dotb] ⚠ Nenhum lead PHM com e-mail — verifique COLS.phmEmail.');
-
-  // ── Render ──
-  const okPHM  = matchKw([...allProds].join(' || '),PHM_PRODUCTS.phm);
-  const okFull = matchKw([...allProds].join(' || '),PHM_PRODUCTS.full);
-  const steps=[
-    {lbl:'Lead PHM', sub:leads+' leads únicos por e-mail', n:leads, bg:'#23291f', bd:'#89cc72'},
-    {lbl:'Comprou Plano Head de Marketing', sub:okPHM?'✓ produto localizado':'⚠ ajuste PHM_PRODUCTS.phm', n:boughtPHM, bg:'#2f5a36', bd:'#89cc72'},
-    {lbl:'Comprou Full Stack Marketing', sub:okFull?'✓ produto localizado':'⚠ ajuste PHM_PRODUCTS.full', n:boughtFullAfterPHM, bg:'#89cc72', bd:'#4dffa7'}
-  ];
-  const max=steps[0].n||1;
-  wrap.innerHTML=steps.map((s,i)=>{
-    const w=Math.max(28,Math.round((s.n/max)*100));
-    const rate=i>0&&steps[0].n>0?((s.n/steps[0].n)*100).toFixed(1).replace('.',',')+'% do topo':'';
-    const arrow=i<steps.length-1?'<div class="phm-arrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4v15M12 19l-4-4M12 19l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>':'';
-    return '<div class="phm-step">'+
-      '<div class="phm-side l">'+(i>0?'<span class="phm-rate">'+rate+'</span>':'')+'</div>'+
-      '<div class="phm-bar-wrap"><div class="phm-bar" style="width:'+w+'%;background:'+s.bg+';border:1px solid '+s.bd+';"><div style="text-align:center;padding:0 12px;"><div class="phm-bar-lbl">'+s.lbl.toUpperCase()+'</div><div class="phm-bar-num">'+fmtN(s.n)+'</div></div></div></div>'+
-      '<div class="phm-side r">'+s.sub+'</div>'+
-    '</div>'+arrow;
-  }).join('');
-}
-
-// ═══ LOGIN ═══
-function initLogin(){
-  const form=document.getElementById('loginForm');
-  const error=document.getElementById('loginError');
-  const user=document.getElementById('loginUser');
-  const pass=document.getElementById('loginPass');
-  const unlock=()=>document.body.classList.remove('auth-pending');
-  if(sessionStorage.getItem('dotb_auth')==='ok') unlock();
-  if(form){
-    form.addEventListener('submit',e=>{
-      e.preventDefault();
-      if((user.value||'').trim()==='admin' && (pass.value||'')==='@Mkt2026'){
-        sessionStorage.setItem('dotb_auth','ok');
-        error.textContent='';
-        unlock();
-      }else{
-        error.textContent='Login ou senha inválidos.';
-        pass.value='';
-        pass.focus();
-      }
-    });
-  }
-  const logout=document.getElementById('btnLogout');
-  if(logout) logout.addEventListener('click',()=>{
-    sessionStorage.removeItem('dotb_auth');
-    document.body.classList.add('auth-pending');
-    if(pass) pass.value='';
-    if(user) user.focus();
-  });
-}
-
-// ═══ EVENTS ═══
-function initEvents(){
-  document.getElementById('btnApply').addEventListener('click',render);
-  document.getElementById('btnReset').addEventListener('click',()=>{
-    applyPreset('30');
-    document.querySelectorAll('#campList input,#prodList input').forEach(i=>i.checked=true);
-    document.getElementById('stApproved').checked=true;
-    document.getElementById('stCompleted').checked=true;
-    document.getElementById('stOther').checked=false;
-    document.getElementById('campSearch').value='';
-    document.getElementById('prodSearch').value='';
-    document.querySelectorAll('#campList .dd-opt,#prodList .dd-opt').forEach(o=>o.style.display='');
-    ddLabel('camp',document.querySelectorAll('#campList input').length);
-    ddLabel('prod',document.querySelectorAll('#prodList input').length);
-    render();
-  });
-  const bR=document.getElementById('btnRefresh');
-  bR.addEventListener('click',async()=>{ bR.classList.add('spinning'); await loadData(); setTimeout(()=>bR.classList.remove('spinning'),600); });
-  document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>{
-    const el=document.getElementById(b.dataset.target); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
-    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); b.classList.add('active');
-  }));
-
-  // Ordenação da tabela de criativos (clicar no cabeçalho)
-  document.querySelectorAll('#table-sec th.sortable').forEach(th=>{
-    th.addEventListener('click',()=>{
-      const key=th.dataset.sort;
-      if(SORT.key===key){ SORT.dir = SORT.dir==='asc'?'desc':'asc'; }
-      else { SORT.key=key; SORT.dir=(key==='code'||key==='name')?'asc':'desc'; } // novo: texto começa A→Z, número maior→menor
-      paintTable();
-    });
-  });
-
-  // Tela cheia do gráfico
-  const chartCard=document.getElementById('chartCard');
-  const fsBtn=document.getElementById('chartFsBtn');
-  if(fsBtn&&chartCard){
-    fsBtn.addEventListener('click',()=>{
-      const fsEl=document.fullscreenElement||document.webkitFullscreenElement;
-      if(fsEl){ (document.exitFullscreen||document.webkitExitFullscreen).call(document); }
-      else { (chartCard.requestFullscreen||chartCard.webkitRequestFullscreen).call(chartCard); }
-    });
-    const ICON_EXPAND='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
-    const ICON_COMPRESS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
-    const onFsChange=()=>{
-      const inFs=!!(document.fullscreenElement||document.webkitFullscreenElement);
-      fsBtn.innerHTML = inFs?ICON_COMPRESS:ICON_EXPAND;
-      fsBtn.title = inFs?'Sair da tela cheia':'Tela cheia';
-      if(chartInstance) setTimeout(()=>chartInstance.resize(),80);
-    };
-    document.addEventListener('fullscreenchange',onFsChange);
-    document.addEventListener('webkitfullscreenchange',onFsChange);
-  }
-
-  setText('tsNow',new Date().toLocaleString('pt-BR'));
-}
-
-// ═══ BOOT ═══
-document.addEventListener('DOMContentLoaded',async()=>{
-  initLogin();
-  initDropdowns();
-  initEvents();
-  await loadData();
-  setInterval(async()=>{ try{ await loadData(); }catch(e){console.warn('refresh:',e);} }, 30*60*1000);
-});
-</script>
-</body>
-</html>
+  if(!RAW.meta.length && !RAW.hotmart
