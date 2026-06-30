@@ -1507,7 +1507,7 @@ function filterHotmartRevenue(f){
 function filterHotmartSales(f){
   return RAW.hotmart.filter(r=>{
     const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
-    if(!isUniqueHotmartSale(r)) return false; // exclui parcelas/recorrências
+    // if(!isUniqueHotmartSale(r)) return false; // exclui parcelas/recorrências
     return hotPassCommonFilters(r,f);
   });
 }
@@ -1627,7 +1627,7 @@ function filterGlobalHotmartSales(f){
   RAW.hotmart.forEach(r=>{
     const sale=sourceSaleFields(r,'limpo');
     if(!salePassFilters(sale,f)) return;
-    if(!isUniqueSourceSale(sale)) return;
+    // if(!isUniqueSourceSale(sale)) return; // Contar todas as parcelas como vendas
     sale.key=sourceSaleKey(sale);
     all.push(sale);
   });
@@ -1639,27 +1639,19 @@ function filterGlobalHotmartSales(f){
       if(sale.product) skippedFullProducts.add(sale.product);
       return;
     }
-    if(!isUniqueSourceSale(sale)) return;
+    // if(!isUniqueSourceSale(sale)) return; // Contar todas as parcelas como vendas
     sale.key=sourceSaleKey(sale);
     all.push(sale);
   });
 
-  const byKey=new Map();
-  all.forEach(sale=>{
-    if(!sale.key) return;
-    const old=byKey.get(sale.key);
-    if(!old || old.source!=='limpo') byKey.set(sale.key,sale);
-  });
-  const out=[...byKey.values()];
+    const out = all; // Retorna todas as linhas sem deduplicação por chave
   if(skippedFullProducts.size){
     console.log('[dotb] Produtos ignorados da Hotmart-PHM na QTD global porque já existem na Hotmart-Limpo:', [...skippedFullProducts].sort());
   }
   return out;
 }
 function countGlobalSales(rows){
-  const seen=new Set();
-  rows.forEach(r=>{ if(r.key) seen.add(r.key); });
-  return seen.size;
+  return rows.length; // Retorna todas as linhas como vendas, conforme solicitado
 }
 function productSalesSummary(rows){
   const by={};
@@ -1684,7 +1676,7 @@ function productBreakdown(f){
 
   function bucketFor(name){
     const key = productSourceKey(name);
-    if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', saleKeys:new Set(), faturamento:0, parcelas:0, fontes:new Set()};
+    if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', vendas:0, faturamento:0, parcelas:0, fontes:new Set()};
     return byProduct[key];
   }
   function consume(r, source){
@@ -1695,9 +1687,9 @@ function productBreakdown(f){
     const b = bucketFor(sale.product);
     b.fontes.add(sale.sourceName);
     b.faturamento += sale.value;          // FATURAMENTO: todas as parcelas
-    if(isUniqueSourceSale(sale)){         // VENDAS: só 1ª parcela / venda única
+    if(true){ // Contar todas as parcelas como vendas         // VENDAS: só 1ª parcela / venda única
       sale.key = sourceSaleKey(sale);
-      if(sale.key) b.saleKeys.add(sale.key);
+      if(sale.key) b.vendas++;
     }else{
       b.parcelas++;                       // parcelas seguintes → só no faturamento
     }
@@ -1707,7 +1699,7 @@ function productBreakdown(f){
   RAW.hotmartFull.forEach(r=>consume(r,'full'));
 
   return Object.values(byProduct)
-    .map(b=>({produto:b.produto, vendas:b.saleKeys.size, faturamento:b.faturamento, parcelas:b.parcelas, fontes:[...b.fontes].join(' + ')}))
+    .map(b=>({produto:b.produto, vendas:b.vendas, faturamento:b.faturamento, parcelas:b.parcelas, fontes:[...b.fontes].join(' + ')}))
     .filter(p=>p.vendas>0 || p.faturamento>0)
     .sort((a,b)=> b.faturamento - a.faturamento || b.vendas - a.vendas || a.produto.localeCompare(b.produto));
 }
@@ -1778,7 +1770,7 @@ function render(){
     const dayData = (byDay[d]=byDay[d]||{invest:0,bruto:0,vendas:0});
     const k = sale.key;
     const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
-    if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
+    dayData.vendas+=1;
   });
   const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart-Limpo + Hotmart-PHM, sem parcelas
   console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
@@ -2002,7 +1994,7 @@ function renderPHM(){
     const st=sale.status;
     if(!['approved','completed'].includes(st)) return;
     // No funil, também respeitamos a regra global de venda única/primeira parcela.
-    if(!isUniqueSourceSale(sale)) return;
+    // if(!isUniqueSourceSale(sale)) return; // Contar todas as parcelas como vendas
     buyersApproved++;
     const email=norm(sale.email || (cEmail ? r[cEmail] : ''));
     const prod=norm(sale.product || (cProd ? r[cProd] : ''));
