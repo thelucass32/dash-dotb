@@ -297,7 +297,7 @@ canvas{width:100%!important;}
 
     <!-- KPIs -->
     <div id="kpis" class="kpi-grid">
-      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">e-mail + data da compra + produto</div></div>
+      <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">1ª parcela + vendas únicas</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Bruto</div><div class="kpi-val"><span class="cur">R$</span><span id="kBruto">—</span></div><div class="kpi-sub">transações únicas + parcelas</div></div>
       <div class="kpi"><div class="kpi-lbl">Investimento</div><div class="kpi-val"><span class="cur">R$</span><span id="kInvest">—</span></div><div class="kpi-sub">mídia paga</div></div>
       <div class="kpi"><div class="kpi-lbl">Fat. Líquido</div><div class="kpi-val"><span class="cur">R$</span><span id="kLiquido">—</span></div><div class="kpi-sub" id="kLiquidoSub">—</div></div>
@@ -434,6 +434,7 @@ let chartInstance=null;
 let TABLE_ROWS=[];                 // linhas calculadas da tabela de criativos
 let TABLE_TOTALS=null;             // totais (rodapé)
 let SORT={key:'invest',dir:'desc'}; // estado de ordenação da tabela
+let HOT_PRODUCT_VALUE_STATS = {};     // estatística por produto para identificar parcelas prováveis quando a coluna de recorrência não vem na aba
 const escAttr = s => String(s).replace(/"/g,'&quot;');
 const IG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>';
 
@@ -448,6 +449,7 @@ const COL_OVERRIDE = {
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
   hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
+  hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
   hotRecurrency:'', // "Sales History Recurrency Number" — PREENCHA aqui se a detecção automática falhar
   hotFullEmail:'', hotFullProd:'', hotFullStatus:'', hotFullPhone:'',
   phmEmail:'', phmPhone:''
@@ -666,6 +668,86 @@ function parseMoney(s){
   const n=parseFloat(str); return isNaN(n)?0:n;
 }
 function num(s){ const n=parseFloat(String(s).replace(/[^\d.-]/g,'')); return isNaN(n)?0:n; }
+function normText(s){
+  const str = String(s||'').toLowerCase();
+  return str.normalize ? str.normalize('NFD').replace(/[\u0300-\u036f]/g,'') : str;
+}
+function normCompact(s){ return normText(s).replace(/[^a-z0-9]/g,''); }
+function normSpaced(s){ return normText(s).replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' '); }
+function headerForms(h){ return [String(h||'').toLowerCase(), normText(h), normSpaced(h), normCompact(h)]; }
+function isRecurrencyHeader(h){
+  const n = normCompact(h);
+  if(!n) return false;
+  const positive = n.includes('recurrency') || n.includes('recurrence') || n.includes('recurring') ||
+    n.includes('recorrencia') || n.includes('recorr') || n.includes('installment') ||
+    n.includes('parcela') || n.includes('parcelas') || n.includes('parcel') ||
+    n.includes('paymentnumber') || n.includes('chargenumber') || n.includes('cobrancanumber') ||
+    (n.includes('cycle') && n.includes('number')) || (n.includes('ciclo') && n.includes('numero'));
+  const negative = n.includes('price') || n.includes('preco') || n.includes('valor') || n.includes('value') ||
+    n.includes('amount') || n.includes('status') || n.includes('date') || n.includes('data') ||
+    n.includes('email') || n.includes('mail') || n.includes('product') || n.includes('produto') ||
+    n.includes('buyer') || n.includes('comprador') || n.includes('phone') || n.includes('telefone');
+  return positive && !negative;
+}
+function productNormKey(r){
+  return COLS.hotProd ? (normSpaced(r[COLS.hotProd]) || '__sem_produto__') : '__sem_produto__';
+}
+function buildHotProductValueStats(){
+  const buckets = {};
+  (RAW.hotmart||[]).forEach(r=>{
+    if(COLS.hotStatus && !['approved','completed'].includes(hotStatusGroup(r[COLS.hotStatus]))) return;
+    const key = productNormKey(r);
+    const v = COLS.hotValue ? parseMoney(r[COLS.hotValue]) : 0;
+    if(v>0){ (buckets[key]=buckets[key]||[]).push(v); }
+  });
+  HOT_PRODUCT_VALUE_STATS = {};
+  Object.keys(buckets).forEach(k=>{
+    const arr = buckets[k].sort((a,b)=>a-b);
+    const max = arr[arr.length-1] || 0;
+    const p75 = arr[Math.floor((arr.length-1)*0.75)] || max;
+    const top = arr.slice(Math.max(0, Math.floor(arr.length*0.8)));
+    const topAvg = top.length ? top.reduce((s,n)=>s+n,0)/top.length : max;
+    HOT_PRODUCT_VALUE_STATS[k] = {count:arr.length, max, p75, topAvg};
+  });
+}
+function rowInstallmentClue(r){
+  // Procura pista de parcela em qualquer coluna, mesmo que o cabeçalho exato não tenha sido detectado.
+  // Retorna: 'first' | 'later' | null
+  if(!r) return null;
+  for(const [k,v] of Object.entries(r)){
+    const h = normSpaced(k);
+    const raw = String(v ?? '').trim();
+    const t = normSpaced(raw);
+    if(!t) continue;
+    const context = h + ' ' + t;
+    const mentionsInstallment = /(recurrency|recurrence|recurring|recorrencia|recorr|installment|parcela|parcelas|parcel|payment number|charge number|cobranca|cobrança|cycle|ciclo|assinatura|subscription)/.test(context);
+    if(!mentionsInstallment) continue;
+    if(/\b(first|primeira|primeiro|one|unica|unico)\b/.test(t)) return 'first';
+    if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto|sexta|sexto|sixth)\b/.test(t)) return 'later';
+    const m = t.match(/\d+/);
+    if(m){
+      const n = parseInt(m[0],10);
+      if(n>1) return 'later';
+      if(n<=1) return 'first';
+    }
+  }
+  return null;
+}
+function isLikelyInstallmentAmountWithoutRecurrency(r){
+  // Fallback conservador quando a aba não traz recurrency/parcela.
+  // Ex.: Full Stack tem venda cheia ~R$ 1.395,36 e parcelas ~R$ 239,34.
+  // Sem a coluna de recorrência, valores muito menores que o ticket típico do produto
+  // são tratados como parcela/recorrência para NÃO inflar quantidade de vendas e CAC.
+  if(COLS.hotRecurrency) return false;
+  const v = COLS.hotValue ? parseMoney(r[COLS.hotValue]) : 0;
+  if(v<=0) return false;
+  const st = HOT_PRODUCT_VALUE_STATS[productNormKey(r)];
+  if(!st || st.count < 2 || st.max <= 0) return false;
+  const ref = Math.max(st.p75 || 0, st.topAvg || 0, st.max || 0);
+  if(ref <= 0) return false;
+  // Parcela provável: valor até 45% do ticket alto do mesmo produto, com diferença bem clara.
+  return (v <= ref * 0.45) && (ref >= v * 1.8);
+}
 // Datas da Hotmart usadas com objetivos diferentes:
 // - Receita/faturamento: data de recebimento/transação (Data BR), com fallback para Purchase Order Date.
 // - Quantidade de vendas: data da compra original (Purchase Order Date), com fallback para Data BR.
@@ -702,32 +784,43 @@ function hotKpiDate(r){
 // TRAVA POR E-MAIL — chave única do comprador.
 // Usada para contar VENDAS ÚNICAS (mesmo comprador = 1 venda) e gerar o CAC certo.
 // Fallback: telefone. Linha sem e-mail nem telefone conta como 1 (não some).
+// Identidade do comprador para dedupe. Prioridade:
+//   1. Transaction ID (mais robusto — é único por compra; parcelas compartilham)
+//   2. Email
+//   3. Telefone
+//   4. Buyer Name (último recurso, propenso a falsos positivos com nomes comuns)
 function emailKey(r){
+  const txn = COLS.hotTxnId ? String(r[COLS.hotTxnId]||'').trim() : '';
+  if(txn) return 'txn:'+txn;
   const e = COLS.hotEmail ? String(r[COLS.hotEmail]||'').trim().toLowerCase() : '';
   if(e) return 'mail:'+e;
   const p = normPhone(r[COLS.hotPhone]);
-  return p ? 'tel:'+p : '';
+  if(p) return 'tel:'+p;
+  const buyer = COLS.hotBuyer ? String(r[COLS.hotBuyer]||'').trim().toLowerCase() : '';
+  if(buyer) return 'name:'+buyer;
+  return '';
 }
-// Conta vendas únicas com CHAVE COMPOSTA: identidade + Order Date + produto.
-// Por que isso? Na Hotmart, uma compra parcelada em N vezes vira N linhas, todas com:
-//   - mesmo email/telefone do comprador
-//   - mesmo Sales History Order Date (data da compra original)
-//   - mesmo produto
-// Diferindo só em Approved Date / Recurrency Number / parcela.
-// Usando essa chave composta, todas essas N linhas colapsam em 1 venda — mesmo se
-// o filtro `isUniqueHotmartSale` falhar por causa do formato da coluna recurrency.
-// É a defesa em camadas: filtra por recurrency E deduplica por chave composta.
+// Conta vendas únicas. A chave depende do TIPO de identidade encontrado:
+//   - Transaction ID → ÚNICO POR COMPRA na Hotmart. Usa direto, sem combinar com nada.
+//     Duas linhas com mesmo Transaction = mesma compra (parcelas) → 1 venda.
+//   - Email/Telefone/Buyer Name → combina com data da compra (truncada YYYY-MM-DD) + produto,
+//     pra colapsar parcelas da mesma compra que apareçam com timestamps ligeiramente diferentes.
+function saleDedupeKey(r){
+  const identity = emailKey(r);
+  if(identity && identity.startsWith('txn:')) return identity;
+  const orderDateRaw = COLS.hotDate ? String(r[COLS.hotDate]||'').trim() : '';
+  const orderDate = (hotSaleDate(r) || parseDate(orderDateRaw) || orderDateRaw.slice(0,10) || '').slice(0,10);
+  const product = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
+  if(identity) return identity + '|' + orderDate + '|' + product;
+  // Fallback seguro para linhas sem e-mail/telefone/transaction/buyer:
+  // parcela da mesma compra costuma repetir produto + data da compra. Sem identidade,
+  // melhor colapsar isso para não inflar CAC do que contar cada parcela como venda nova.
+  return 'anon|' + orderDate + '|' + product;
+}
 function countUniqueSales(rows){
   const seen = new Set();
-  let anon = 0;
-  rows.forEach(r=>{
-    const identity = emailKey(r);                                                       // 'mail:x' ou 'tel:y'
-    const orderDate = COLS.hotDate ? String(r[COLS.hotDate]||'').trim() : '';
-    const product   = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
-    if(!identity){ anon++; return; }                                                    // sem id → conta sozinha
-    seen.add(identity + '|' + orderDate + '|' + product);
-  });
-  return seen.size + anon;
+  rows.forEach(r=>{ seen.add(saleDedupeKey(r)); });
+  return seen.size;
 }
 function hotStatusGroup(st){
   const s=String(st||'').toLowerCase().trim();
@@ -739,18 +832,46 @@ function hotStatusGroup(st){
 // Venda única na Hotmart: conta somente a primeira cobrança da assinatura/recorrência.
 // Regra solicitada: Sales History Recurrency Number = vazio ou exatamente 1.
 // O faturamento soma o valor recebido da linha: parcela recebida ou valor recebido da venda única.
-function isUniqueHotmartSale(r){
-  // REGRA GLOBAL DE QTD DE VENDAS:
-  // Conta somente quando Sales History Recurrency Number estiver vazio ou for exatamente 1.
-  // Qualquer outro valor (2, 3, 4, "2/12", "parcela 2", etc.) é parcela/recorrência → NÃO conta como venda.
-  if(!COLS.hotRecurrency) return true; 
-  const val = r[COLS.hotRecurrency];
+function getRecurrencyValue(r){
+  if(!r) return null;
+  if(COLS.hotRecurrency && Object.prototype.hasOwnProperty.call(r, COLS.hotRecurrency)) return r[COLS.hotRecurrency];
+  if(COLS.hotRecurrency){
+    const wanted = normCompact(COLS.hotRecurrency);
+    const equivalent = Object.keys(r).find(k=>normCompact(k)===wanted);
+    if(equivalent) return r[equivalent];
+  }
+  const auto = Object.keys(r).find(isRecurrencyHeader);
+  return auto ? r[auto] : null;
+}
+function isFirstRecurrencyValue(val){
   if(val === undefined || val === null) return true;
   const raw = String(val).trim();
-  if(raw === '' || raw === '0') return true; 
-  // Aceita apenas: "1", "1.0", "1.00" etc. — rejeita "1/12", "1ª", "1a", "12", "2", etc.
-  const cleaned = raw.replace(/\s+/g,'').replace(',', '.');
-  return /^1(\.0+)?$/.test(cleaned);
+  if(raw === '' || raw === '0') return true; // venda única/sem recorrência
+  const t = normSpaced(raw);
+  if(!t) return true;
+  if(/\b(one time|single|unica|unico|avulsa|avista|a vista)\b/.test(t)) return true;
+  if(/\b(first|primeira|primeiro)\b/.test(t)) return true;
+  if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto)\b/.test(t)) return false;
+  const m = t.match(/\d+/);
+  if(m) return parseInt(m[0],10) <= 1; // aceita 1, 01, 1/12, 1ª, parcela 1; rejeita 2/12+
+  if(/recorr|parcel|installment|subscription|assinatura|cobranca/.test(t)) return false;
+  return true;
+}
+function isUniqueHotmartSale(r){
+  // REGRA GLOBAL DE QTD DE VENDAS:
+  // conta apenas venda única / primeira cobrança. Exemplos aceitos: vazio, 0, 1, 1.0, 1/12, 1ª, "parcela 1".
+  // Exemplos excluídos: 2, 2/12, "parcela 2", "segunda cobrança".
+  const val = getRecurrencyValue(r);
+  if(val !== null && val !== undefined) return isFirstRecurrencyValue(val);
+
+  // Quando a coluna exata não veio na Hotmart-Limpo, ainda tenta encontrar pista
+  // em outras colunas e, por último, aplica uma heurística por valor do produto.
+  const clue = rowInstallmentClue(r);
+  if(clue === 'later') return false;
+  if(clue === 'first') return true;
+
+  if(isLikelyInstallmentAmountWithoutRecurrency(r)) return false;
+  return true;
 }
 function normPhone(p){ if(!p) return ''; return String(p).replace(/\D/g,'').slice(-9); }
 // Extrai o código do criativo: "B04_PHM_FAZTUDO" → "B04" ; "B04" → "B04"
@@ -762,7 +883,10 @@ function extractCode(s){
 }
 function colFind(headers,patterns){
   if(!headers||!headers.length) return null;
-  for(const pat of patterns){ const f=headers.find(h=>pat.test(h.toLowerCase())); if(f) return f; }
+  for(const pat of patterns){
+    const f=headers.find(h=>headerForms(h).some(form=>pat.test(form)));
+    if(f) return f;
+  }
   return null;
 }
 function setText(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
@@ -821,27 +945,39 @@ function detectColumns(){
   }
   COLS.hotEmail    = colFind(hh,[/sales history buyer email/,/buyer.?email/,/e-?mail/,/email/]);
   COLS.hotPhone    = colFind(hh,[/buyer.?phone/,/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/]);
+  // Transaction ID da Hotmart — IDENTIFICADOR ÚNICO DE COMPRA. Parcelas da mesma compra
+  // compartilham o mesmo Transaction. Usado como prioridade #1 na chave de dedupe.
+  COLS.hotTxnId    = colFind(hh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
+  // Buyer Name — fallback de identidade quando não há email/telefone.
+  COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
+    /sales.?history.*recurrency.*number/,
+    /sales.?history.*recurrence.*number/,
+    /sales.?history.*recorr.*number/,
     /^recurrency number$/,
     /recurrency.?number/,
     /recurrence.?number/,
+    /recurring.?number/,
     /recorr[eê]ncia.?n[uú]mero/,
+    /numero.?recorr/,
     /n[uú]mero.?recorr/,
     /recorr[eê]ncia/,
     /recurrency/,
+    /installments?.?number/,
     /installment.?number/,
     /n[uú]mero.?parcela/,
     /parcela.?n[uú]mero/,
-    /installment/,
-    /parcela/
+    /parcelas?.?number/,
+    /installments?/,
+    /parcela/,
+    /payment.?number/,
+    /charge.?number/,
+    /cobran[çc]a.*n[uú]mero/
   ]);
   if(!COLS.hotRecurrency){
-    COLS.hotRecurrency = hh.find(h=>{
-      const s=String(h||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-      return (s.includes('recurr') || s.includes('recorr') || s.includes('installment') || s.includes('parcela')) && (s.includes('number') || s.includes('numero') || s.includes('num'));
-    }) || null;
+    COLS.hotRecurrency = hh.find(isRecurrencyHeader) || null;
   }
 
   // Aba Hotmart COMPLETA (Funil PHM)
@@ -874,8 +1010,15 @@ function detectColumns(){
     }
   }
 
+  buildHotProductValueStats();
   console.log('%c[dotb] Colunas detectadas:','color:#89cc72;font-weight:bold', COLS);
-  if(!COLS.hotRecurrency) console.error('[dotb] ERRO CRÍTICO: Coluna de recorrência não detectada!');
+  console.log('%c[dotb] Identidade do comprador na Hotmart-Limpo:','color:#89cc72;font-weight:bold');
+  console.log('  • Transaction ID:', COLS.hotTxnId || '(não detectada)');
+  console.log('  • Buyer Name:    ', COLS.hotBuyer || '(não detectada)');
+  console.log('  • Email:         ', COLS.hotEmail || '(não detectada)');
+  console.log('  • Phone:         ', COLS.hotPhone || '(não detectada)');
+  if(!COLS.hotTxnId && !COLS.hotEmail) console.warn('[dotb] ⚠ Sem Transaction ID nem Email — dedupe vai usar Buyer Name; se também faltar, vai colapsar por data da compra + produto para não inflar CAC.');
+  if(!COLS.hotRecurrency) console.warn('[dotb] ⚠ Coluna de recorrência não detectada. Ativei fallback conservador: procura pistas de parcela em outras colunas e ignora valores muito menores que o ticket típico do produto para não inflar CAC. Para máxima precisão, mantenha a coluna Sales History Recurrency Number na aba Hotmart-Limpo.');
   else console.log('[dotb] Coluna de recorrência detectada:', COLS.hotRecurrency);
   console.log('[dotb] Cabeçalhos Meta:', mh);
   console.log('[dotb] Cabeçalhos Hotmart (limpo):', hh);
@@ -907,15 +1050,15 @@ function detectColumns(){
     console.log(
       '%c[dotb] RESUMO HOTMART-LIMPO (total, sem filtro de data):\n'
       +'  • Linhas approved/completed: '+okAll+'\n'
-      +'  • Vendas únicas (recurrency vazio ou =1): '+uniqueAll+'\n'
+      +'  • Linhas elegíveis para venda (1ª parcela/venda única após travas): '+uniqueAll+'\n'
       +'  • Parcelas/recorrências ignoradas na qtd: '+recurringIgnored+'\n'
       +'  • Faturamento bruto total (todas as parcelas): '+money2(grossAll),
       'color:#89cc72;font-weight:bold'
     );
     if(!COLS.hotRecurrency){
       console.warn('[dotb] ⚠️ ATENÇÃO: coluna "Sales History Recurrency Number" NÃO detectada.\n'
-        +'Todas as linhas serão contadas como venda (comportamento legado).\n'
-        +'Verifique o nome exato da coluna na planilha e ajuste COL_OVERRIDE.hotRecurrency se necessário.');
+        +'Sem essa coluna, a trava principal passa a ser a chave de dedupe por compra (Transaction/Email/Telefone/Buyer; fallback data+produto).\n'
+        +'Para máxima precisão, verifique o nome exato da coluna na planilha ou ajuste COL_OVERRIDE.hotRecurrency.');
     }
   }
 }
@@ -1107,23 +1250,16 @@ function render(){
       dayData.bruto+=v;
     }
   });
-  // Vendas por dia também usam a chave composta (identidade + Order Date + produto),
-  // pra que parcelas da mesma compra NÃO contem como vendas separadas em nenhum dia.
+  // Vendas por dia também usam a chave de dedupe (Transaction ID se disponível, senão
+  // identidade + data truncada + produto). Mesma lógica do countUniqueSales.
   const daySaleKeys={};
   hotSales.forEach(r=>{
     const d=hotKpiDate(r);
     if(!d) return;
     const dayData = (byDay[d]=byDay[d]||{invest:0,bruto:0,vendas:0});
-    const identity = emailKey(r);
-    const orderDate = COLS.hotDate ? String(r[COLS.hotDate]||'').trim() : '';
-    const product   = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
-    if(identity){
-      const k = identity + '|' + orderDate + '|' + product;
-      const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
-      if(!set.has(k)){ set.add(k); dayData.vendas+=1; }
-    } else {
-      dayData.vendas+=1;
-    }
+    const k = saleDedupeKey(r);
+    const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
+    if(!set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
   const vendas=countUniqueSales(hotSales);   // VENDAS ÚNICAS travadas por e-mail (CAC correto)
   console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
@@ -1143,23 +1279,28 @@ function render(){
   console.log(
     '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
     +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
-    +'  • Vendas únicas finais (e-mail + Order Date + produto): '+vendas+'\n'
+    +'  • Vendas únicas finais (1ª parcela + chave dedupe): '+vendas+'\n'
     +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
-    +'  • Linhas pré-dedupe (já filtradas por recurrency): '+hotSales.length+'\n'
+    +'  • Linhas pré-dedupe (só 1ª parcela/sem recorrência): '+hotSales.length+'\n'
     +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
     'color:#4dffa7;font-weight:bold'
   );
 
   // Detalhe extra: lista as linhas que foram para a contagem de vendas únicas
   if(hotSales.length && hotSales.length < 40){
-    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas:','color:#4dffa7');
+    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas (só 1ª parcela; chave dedupe na última coluna):','color:#4dffa7');
     console.table(hotSales.map(r=>({
+      'Buyer Name': COLS.hotBuyer ? r[COLS.hotBuyer] : '(coluna não detectada)',
+      'Transaction': COLS.hotTxnId ? r[COLS.hotTxnId] : '(coluna não detectada)',
       'Order Date': COLS.hotDate ? r[COLS.hotDate] : '',
       'Approved Date': COLS.hotDateBR ? r[COLS.hotDateBR] : '',
       'Email': COLS.hotEmail ? r[COLS.hotEmail] : '',
       'Produto': COLS.hotProd ? r[COLS.hotProd] : '',
-      'Recurrency': COLS.hotRecurrency ? r[COLS.hotRecurrency] : '(coluna não detectada)',
-      'Valor': COLS.hotValue ? r[COLS.hotValue] : ''
+      'Status': COLS.hotStatus ? r[COLS.hotStatus] : '',
+      'Recurrency': getRecurrencyValue(r) ?? '(coluna não detectada)',
+      'Pista parcela': rowInstallmentClue(r) || (isLikelyInstallmentAmountWithoutRecurrency(r) ? 'valor baixo vs ticket do produto' : ''),
+      'Valor': COLS.hotValue ? r[COLS.hotValue] : '',
+      'Chave dedupe': saleDedupeKey(r)
     })));
   }
 
