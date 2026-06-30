@@ -374,7 +374,7 @@ canvas{width:100%!important;}
 
     <!-- TABLE -->
     <div class="section" id="table-sec">
-      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag">Investimento × performance por anúncio</span></div>
+      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag">Meta Ads · vendas por anúncio</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
@@ -386,8 +386,6 @@ canvas{width:100%!important;}
             <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="receita">Receita <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="roas">ROAS <span class="sort-caret"></span></th>
             <th>Links</th>
           </tr></thead>
           <tbody id="tblCreativos"></tbody>
@@ -434,7 +432,8 @@ const IG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 // do cabeçalho da planilha. Deixe '' para detecção automática.
 const COL_OVERRIDE = {
   metaDate:'', metaCamp:'', metaAd:'', metaSpend:'', metaImpr:'', metaClick:'',
-  metaPageView:'', metaCheckout:'', metaPurch:'', metaPurchVal:'',
+  // Vendas da tabela/funil Meta: usar EXATAMENTE este cabeçalho da planilha Meta Ads.
+  metaPageView:'', metaCheckout:'', metaPurch:'Action Omni Purchase', metaPurchVal:'',
   metaPermalink:'', metaThumb:'',
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
@@ -481,13 +480,111 @@ function cleanRows(rows,label){
   return valid;
 }
 
-// ═══ FETCH (proxy fallback) ═══
-const PROXIES=[u=>u, u=>'https://corsproxy.io/?url='+encodeURIComponent(u), u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)];
+// ═══ CARREGAMENTO GOOGLE SHEETS ═══
+// Quando o dashboard é aberto direto do computador (file:///...), o navegador bloqueia
+// fetch() para o CSV publicado do Google Sheets por CORS.
+// Por isso, depois das tentativas tradicionais, usamos o endpoint GViz via <script>,
+// que funciona também em arquivo local e evita depender de proxy externo.
+const PROXIES=[
+  u=>u,
+  u=>'https://corsproxy.io/?url='+encodeURIComponent(u),
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u)
+];
 async function fetchCSV(url){
   for(const p of PROXIES){
-    try{ const r=await fetch(p(url),{cache:'no-store'}); if(r.ok) return await r.text(); }catch(e){}
+    try{
+      const r=await fetch(p(url),{cache:'no-store'});
+      if(r.ok) return await r.text();
+    }catch(e){
+      // Em file:// é esperado cair aqui por CORS. O fallback GViz resolve.
+    }
   }
-  throw new Error('proxies falharam');
+  console.warn('[dotb] CSV/proxies bloqueados. Usando fallback Google GViz para:', url);
+  return await fetchCSVViaGviz(url);
+}
+function gvizUrlFromPublishedCsv(url){
+  const u = new URL(url);
+  const gid = u.searchParams.get('gid') || '0';
+  const base = url.replace(/\/pub.*$/,'');
+  return base + '/gviz/tq?tqx=out:json&gid=' + encodeURIComponent(gid) + '&_=' + Date.now();
+}
+function csvEscape(v){
+  const s = String(v ?? '');
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+function gvizCellValue(cell){
+  if(!cell) return '';
+  if(cell.f !== undefined && cell.f !== null) return cell.f;
+  const v = cell.v;
+  if(v === undefined || v === null) return '';
+  // Datas no GViz podem vir como Date(2026,5,29). Converte para dd/mm/aaaa.
+  if(typeof v === 'string'){
+    const m = v.match(/^Date\((\d+),(\d+),(\d+)/);
+    if(m){
+      const d = String(m[3]).padStart(2,'0');
+      const mo = String(Number(m[2])+1).padStart(2,'0');
+      return d + '/' + mo + '/' + m[1];
+    }
+  }
+  return v;
+}
+function gvizResponseToCSV(resp){
+  if(!resp || resp.status === 'error'){
+    const msg = resp && resp.errors && resp.errors[0] ? resp.errors[0].detailed_message || resp.errors[0].message : 'GViz sem resposta';
+    throw new Error(msg);
+  }
+  const table = resp.table || {};
+  const headers = (table.cols || []).map((c,i)=>c.label || c.id || ('col_'+i));
+  const lines = [headers.map(csvEscape).join(',')];
+  (table.rows || []).forEach(row=>{
+    const vals = headers.map((_,i)=>csvEscape(gvizCellValue(row.c ? row.c[i] : null)));
+    lines.push(vals.join(','));
+  });
+  return lines.join('\n');
+}
+let GVIZ_CHAIN = Promise.resolve();
+function fetchCSVViaGviz(url){
+  // Serializa chamadas porque o Google retorna sempre google.visualization.Query.setResponse(...).
+  GVIZ_CHAIN = GVIZ_CHAIN.then(()=>new Promise((resolve,reject)=>{
+    const gvizUrl = gvizUrlFromPublishedCsv(url);
+    window.google = window.google || {};
+    window.google.visualization = window.google.visualization || {};
+    window.google.visualization.Query = window.google.visualization.Query || {};
+    const oldHandler = window.google.visualization.Query.setResponse;
+    const script = document.createElement('script');
+    let done = false;
+    const cleanup = () => {
+      done = true;
+      script.remove();
+      window.google.visualization.Query.setResponse = oldHandler || function(){};
+    };
+    const timer = setTimeout(()=>{
+      if(done) return;
+      cleanup();
+      reject(new Error('Timeout ao carregar Google Sheets via GViz'));
+    }, 25000);
+    window.google.visualization.Query.setResponse = function(resp){
+      if(done) return;
+      clearTimeout(timer);
+      try{
+        const csv = gvizResponseToCSV(resp);
+        cleanup();
+        resolve(csv);
+      }catch(err){
+        cleanup();
+        reject(err);
+      }
+    };
+    script.onerror = () => {
+      if(done) return;
+      clearTimeout(timer);
+      cleanup();
+      reject(new Error('Falha ao carregar Google Sheets via GViz'));
+    };
+    script.src = gvizUrl;
+    document.head.appendChild(script);
+  }));
+  return GVIZ_CHAIN;
 }
 
 // ═══ HELPERS ═══
@@ -548,17 +645,6 @@ function hotKpiDate(r){
     return (COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null) || parseDate(r[COLS.hotDate]);
   }
   return parseDate(r[COLS.hotDate]) || (COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null);
-}
-// Uma linha entra no período se a data da COMPRA **ou** a de RECEBIMENTO cair na
-// janela. Isso garante que a venda apareça no dia filtrado (KPI) E que o
-// cruzamento criativo×Hotmart (vendas/receita/ROAS) não perca linhas por causa
-// de compra e recebimento caírem em dias diferentes.
-function hotInWindow(r,f){
-  const dO = parseDate(r[COLS.hotDate]);
-  const dR = COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null;
-  const inO = dO && dO>=f.from && dO<=f.to;
-  const inR = dR && dR>=f.from && dR<=f.to;
-  return !!(inO || inR);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -634,7 +720,8 @@ function detectColumns(){
   COLS.metaPageView= colFind(mh,[/visualiza[çc][aã]o de p[aá]gina/,/landing.?page.?view/,/page.?view/,/visualiza/]);
   // INÍCIO DE CHECKOUT = Action Omni Initiated Checkout
   COLS.metaCheckout= colFind(mh,[/action.?omni.?initiated.?checkout/,/omni.?initiated.?checkout/,/initiated.?checkout/,/in[ií]cio.*checkout/,/in[ií]cio de checkout/,/checkout.?initiat/,/add.?to.?cart/,/checkout/]);
-  COLS.metaPurch   = colFind(mh,[/compras/,/^purchase/,/purchase/,/^vendas/,/conversões de compra/]);
+  // VENDAS META = Action Omni Purchase (prioridade/exato). O override acima trava este cabeçalho.
+  COLS.metaPurch   = colFind(mh,[/^action omni purchase$/, /action.?omni.?purchase/, /compras/, /^purchase/, /purchase/, /^vendas/, /conversões de compra/]);
   COLS.metaPurchVal= colFind(mh,[/valor de convers[aã]o.*compra/,/purchase.*conversion.?value/,/valor.*compra/,/conversion.?value/,/receita/]);
   COLS.metaPermalink= colFind(mh,[/instagram.?permalink.?url/,/instagram.?permalink/,/permalink.?url/,/permalink/]);
   COLS.metaThumb   = colFind(mh,[/thumbnail.?url/,/thumbnail/,/image.?url/,/\bthumb\b/]);
@@ -771,12 +858,11 @@ function detectColumns(){
 async function loadData(){
   setStatus('loading','Carregando dados…');
   try{
-    const [m,h,p,hf]=await Promise.all([
-      fetchCSV(URLS.meta),
-      fetchCSV(URLS.hotmart),
-      fetchCSV(URLS.phm),
-      fetchCSV(URLS.hotmartFull)
-    ]);
+    // Carrega em sequência para o fallback GViz funcionar com segurança em arquivo local.
+    const m  = await fetchCSV(URLS.meta);
+    const h  = await fetchCSV(URLS.hotmart);
+    const p  = await fetchCSV(URLS.phm);
+    const hf = await fetchCSV(URLS.hotmartFull);
     RAW.meta=cleanRows(csvToObjects(m),'Meta');
     RAW.hotmart=cleanRows(csvToObjects(h),'Hotmart-Limpo');
     RAW.phm=cleanRows(csvToObjects(p),'PHM');
@@ -907,7 +993,7 @@ function hotPassCommonFilters(r,f){
 // Usa o eixo de data único (hotKpiDate), então o faturamento aparece no mesmo dia da venda.
 function filterHotmartRevenue(f){
   return RAW.hotmart.filter(r=>{
-    if(!hotInWindow(r,f)) return false;
+    const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
     return hotPassCommonFilters(r,f);
   });
 }
@@ -915,7 +1001,7 @@ function filterHotmartRevenue(f){
 // (recurrency vazio ou =1). A dedupe por e-mail é feita na contagem (countUniqueSales).
 function filterHotmartSales(f){
   return RAW.hotmart.filter(r=>{
-    if(!hotInWindow(r,f)) return false;
+    const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
     if(!isUniqueHotmartSale(r)) return false; // exclui parcelas/recorrências
     return hotPassCommonFilters(r,f);
   });
@@ -1021,8 +1107,8 @@ function render(){
   // Chart
   renderChart(byDay);
 
-  // Table — cruzamento criativo (Meta) × vendas/receita (Hotmart)
-  renderTable(meta,hotRevenue,hotSales);
+  // Table — criativos Meta Ads × vendas do próprio Meta Ads (sem cruzar com Hotmart/SCK)
+  renderTable(meta);
 
   // Funil PHM
   renderPHM();
@@ -1055,65 +1141,40 @@ function renderChart(byDay){
   });
 }
 
-// ═══ TABLE — cruza criativo Meta (código) × vendas/receita Hotmart ═══
-// hotRevenue: todas as parcelas recebidas no período (para coluna Receita e ROAS)
-// hotSales:   apenas vendas únicas (recurrency vazio ou =1) no período (para coluna Vendas e CAC)
-function renderTable(meta,hotRevenue,hotSales){
-  // 1) Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
+// ═══ TABLE — criativos Meta Ads × vendas do próprio Meta Ads ═══
+// A tabela abaixo NÃO cruza com Hotmart/SCK. A coluna Vendas vem direto do Meta Ads
+// pela coluna COLS.metaPurch, travada como "Action Omni Purchase".
+function renderTable(meta){
+  // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
   const byCode={};
   meta.forEach(r=>{
     const fullName=(r[COLS.metaAd]||r[COLS.metaCamp]||'Sem nome');
     const code=extractCode(fullName)||fullName.toUpperCase();
-    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendas:0,receita:0,permalink:'',thumb:''};
+    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendas:0,permalink:'',thumb:''};
     a.names.add(fullName);
     a.invest+=parseMoney(r[COLS.metaSpend]);
     a.impr+=num(r[COLS.metaImpr]);
     a.clicks+=num(r[COLS.metaClick]);   // CLIQUES = Link Clicks
+    a.vendas+=num(r[COLS.metaPurch]);   // VENDAS = Action Omni Purchase do Meta Ads
     if(!a.permalink){ const pl=String(r[COLS.metaPermalink]||'').trim(); if(pl) a.permalink=pl; }
     if(!a.thumb){ const th=String(r[COLS.metaThumb]||'').trim(); if(th) a.thumb=th; }
   });
 
-  // 2) Agrupa receita e vendas da Hotmart por CÓDIGO de criativo.
-  // Receita usa data de recebimento; vendas usa data de compra original + recorrência 1/vazio.
-  const hotByCode={};
-  hotRevenue.forEach(r=>{
-    const code=extractCode(r[COLS.hotCreative]);
-    if(!code) return;
-    const a=hotByCode[code]=hotByCode[code]||{vendas:0,receita:0,_keys:new Set(),_anon:0};
-    a.receita+=parseMoney(r[COLS.hotValue]);
-  });
-  hotSales.forEach(r=>{
-    const code=extractCode(r[COLS.hotCreative]);
-    if(!code) return;
-    const a=hotByCode[code]=hotByCode[code]||{vendas:0,receita:0,_keys:new Set(),_anon:0};
-    if(!isUniqueHotmartSale(r)) return;
-    const k=emailKey(r);                 // trava por e-mail também na tabela
-    if(k){ if(!a._keys.has(k)){ a._keys.add(k); a.vendas+=1; } }
-    else { a._anon+=1; a.vendas+=1; }
-  });
-
-  console.log('%c[dotb] Códigos Meta:','color:#3b8bff', Object.keys(byCode));
-  console.log('%c[dotb] Códigos Hotmart (criativo):','color:#89cc72', Object.keys(hotByCode));
-
-  // 3) Junta pelo código
-  Object.values(byCode).forEach(m=>{
-    const h=hotByCode[m.code];
-    if(h){ m.vendas=h.vendas; m.receita=h.receita; }
-  });
+  console.log('%c[dotb] Tabela Criativos vs KPIs usando vendas do Meta Ads (sem Hotmart/SCK).','color:#89cc72;font-weight:bold');
+  console.log('%c[dotb] Coluna de vendas Meta detectada:','color:#89cc72', COLS.metaPurch||'(não detectada)');
 
   const rows=Object.values(byCode);
   // Monta as linhas com todas as métricas já calculadas
   TABLE_ROWS=rows.map(m=>{
     const ctr=m.impr>0?m.clicks/m.impr:0;          // CTR = Link Clicks / Impressões
     const cpc=m.clicks>0?m.invest/m.clicks:0;       // CPC = Investimento / Link Clicks
-    const roas=m.invest>0&&m.receita>0?m.receita/m.invest:null;
     return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
-            ctr, cpc, vendas:m.vendas, receita:m.receita, roas, permalink:m.permalink, thumb:m.thumb};
+            ctr, cpc, vendas:m.vendas, permalink:m.permalink, thumb:m.thumb};
   });
   // Totais (independentes da ordenação)
-  let tI=0,tImp=0,tC=0,tV=0,tR=0;
-  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas;tR+=m.receita; });
-  TABLE_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV,receita:tR,roas:tI>0&&tR>0?tR/tI:null};
+  let tI=0,tImp=0,tC=0,tV=0;
+  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas; });
+  TABLE_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV};
   paintTable();
 }
 
@@ -1122,7 +1183,7 @@ function paintTable(){
   const body=document.getElementById('tblCreativos');
   const foot=document.getElementById('tblFoot');
   if(!TABLE_ROWS.length){
-    body.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
+    body.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
     foot.innerHTML=''; updateSortIndicators(); return;
   }
   const {key,dir}=SORT, mul=dir==='asc'?1:-1;
@@ -1134,7 +1195,6 @@ function paintTable(){
     return mul*(x-y);
   });
   body.innerHTML=sorted.map(m=>{
-    const rb=m.roas!==null?'<span class="roas-badge '+(m.roas>=1?'badge-green':'badge-red')+'">'+fmtR(m.roas)+'</span>':'<span style="color:var(--gray-2)">—</span>';
     const label='<strong style="color:var(--off)">'+m.code+'</strong> <span style="color:var(--gray-2);font-size:10px">'+(m.name!==m.code?m.name:'')+'</span>';
     const thumbCell=m.thumb?'<img class="cr-thumb" src="'+escAttr(m.thumb)+'" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="dotbImgFail(this)">':'<span class="cr-noimg">—</span>';
     const linkCell=m.permalink?'<a class="ig-link" href="'+escAttr(m.permalink)+'" target="_blank" rel="noopener" title="Abrir no Instagram">'+IG_SVG+'</a>':'<span style="color:var(--gray-2)">—</span>';
@@ -1147,13 +1207,11 @@ function paintTable(){
       '<td>'+fmtP(m.ctr)+'</td>'+
       '<td>'+money2(m.cpc)+'</td>'+
       '<td>'+fmtN(m.vendas)+'</td>'+
-      '<td>'+money0(m.receita)+'</td>'+
-      '<td>'+rb+'</td>'+
       '<td>'+linkCell+'</td>'+
     '</tr>';
   }).join('');
   const t=TABLE_TOTALS;
-  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td>'+money0(t.receita)+'</td><td>'+(t.roas!==null?fmtR(t.roas):'—')+'</td><td></td></tr>';
+  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td></td></tr>';
   updateSortIndicators();
 }
 
