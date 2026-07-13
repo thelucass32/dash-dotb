@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>dotb · Performance Dashboard</title>
 <!-- versão corrigida: vendas globais usam Hotmart como fonte canônica por produto; Hotmart-PHM só para produtos exclusivos; QTD de vendas: Recurrency vazio/1, exceto Offer Payment Mode SUBSCRIPTION -->
-<!-- NOVO: Criativos e Públicos cruzam com Hotmart limpo (SCK / SEGMENTAÇÃO) → Vendas, Parceladas, Receita (valor cheio 1x), ROAS e CAC -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Halyard+Display:wght@300;400;500&display=swap" rel="stylesheet">
@@ -23,6 +22,7 @@
 html,body{background:var(--bg);color:var(--off);font-family:var(--grotesk);font-weight:300;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
 body{background:radial-gradient(ellipse 900px 500px at 90% -5%,rgba(137,204,114,.07),transparent 60%),var(--bg);}
 .shell{display:flex;min-height:100vh;}
+
 /* SIDEBAR */
 .sidebar{width:220px;flex-shrink:0;background:#0f0f0d;border-right:1px solid var(--line);padding:28px 20px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100vh;overflow-y:auto;}
 .brand{font-family:var(--display);font-size:24px;letter-spacing:.01em;color:var(--off);}
@@ -38,6 +38,7 @@ body{background:radial-gradient(ellipse 900px 500px at 90% -5%,rgba(137,204,114,
 .sb-foot{margin-top:auto;padding-top:20px;border-top:1px solid var(--line);}
 .sb-foot-lbl{font-size:9px;letter-spacing:.26em;color:var(--gray-2);text-transform:uppercase;}
 .sb-foot-val{font-size:12px;color:var(--gray);margin-top:4px;}
+
 /* MAIN */
 .main{flex:1;min-width:0;padding:28px 36px 60px;}
 .topbar{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:24px;gap:16px;flex-wrap:wrap;}
@@ -45,6 +46,7 @@ body{background:radial-gradient(ellipse 900px 500px at 90% -5%,rgba(137,204,114,
 .page-eyebrow::before{content:'';width:20px;height:1px;background:var(--accent);}
 h1{font-family:var(--display);font-size:30px;font-weight:400;color:var(--off);line-height:1;}
 .ts{font-family:monospace;font-size:10px;color:var(--gray-2);letter-spacing:.06em;}
+
 /* FILTER BAR */
 .filter-bar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;padding:16px 20px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);margin-bottom:28px;}
 .fg{display:flex;flex-direction:column;gap:5px;}
@@ -91,6 +93,7 @@ h1{font-family:var(--display);font-size:30px;font-weight:400;color:var(--off);li
 .btn-reset:hover{border-color:var(--accent);color:var(--accent);}
 .btn-apply{background:var(--accent);border:none;color:#10210c;font-family:var(--grotesk);font-weight:600;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:10px 18px;cursor:pointer;border-radius:10px;transition:all .2s;}
 .btn-apply:hover{background:#9ad97f;box-shadow:0 0 20px rgba(137,204,114,.35);}
+
 /* KPI */
 .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border-radius:var(--r15);overflow:hidden;border:1px solid var(--line);margin-bottom:36px;}
 .kpi{background:var(--bg-1);padding:20px 18px 16px;position:relative;}
@@ -103,12 +106,14 @@ h1{font-family:var(--display);font-size:30px;font-weight:400;color:var(--off);li
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:500;}
 .badge-green{background:rgba(137,204,114,.15);color:var(--green);}
 .badge-red{background:rgba(242,49,44,.12);color:var(--red);}
+
 /* SECTION */
 .section{margin-bottom:44px;scroll-margin-top:20px;}
 .section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:8px;}
 .section-title{font-family:var(--display);font-size:19px;font-weight:400;color:var(--off);}
 .section-title em{color:var(--accent);font-style:normal;}
 .section-tag{font-size:9px;letter-spacing:.26em;color:var(--gray-2);text-transform:uppercase;}
+
 /* CHART */
 .chart-card{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);padding:24px 24px 16px;position:relative;overflow:hidden;}
 .chart-card::before{content:'';position:absolute;top:0;right:0;width:200px;height:200px;background:radial-gradient(circle,rgba(137,204,114,.06),transparent 70%);pointer-events:none;}
@@ -126,6 +131,7 @@ canvas{width:100%!important;}
 #chartCard:fullscreen .chart-canvas-wrap{height:calc(100vh - 130px);}
 #chartCard:-webkit-full-screen{background:var(--bg);padding:40px 44px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
 #chartCard:-webkit-full-screen .chart-canvas-wrap{height:calc(100vh - 130px);}
+
 /* FUNNEL META */
 .funnel-wrap{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);padding:32px 40px 28px;position:relative;overflow:hidden;}
 .funnel-wrap::before{content:'';position:absolute;top:0;left:0;width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.4;}
@@ -145,6 +151,7 @@ canvas{width:100%!important;}
 .ig-link{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--bg-3);border:1px solid var(--line);color:var(--blue);text-decoration:none;transition:all .15s;}
 .ig-link:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--off);}
 .ig-link svg{width:15px;height:15px;}
+
 /* FUNNEL PHM */
 .phm-funnel{display:flex;flex-direction:column;align-items:center;gap:0;padding:10px 0;}
 .phm-step{width:100%;display:flex;align-items:center;justify-content:center;gap:0;}
@@ -157,6 +164,7 @@ canvas{width:100%!important;}
 .phm-bar-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);}
 .phm-bar-num{font-family:var(--display);font-size:25px;color:#fff;margin-top:2px;}
 .phm-arrow{display:flex;justify-content:center;padding:7px 0;color:var(--gray-2);}
+
 /* TABLE */
 .tbl-wrap{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);overflow:hidden;overflow-x:auto;}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:920px;}
@@ -174,25 +182,20 @@ canvas{width:100%!important;}
 .tbl th.sortable:hover{color:var(--off);}
 .tbl th.sort-active{color:var(--accent);}
 .sort-caret{display:inline-block;font-size:8px;margin-left:2px;color:var(--accent);}
-/* Coluna de parceladas com destaque discreto */
-.parc-badge{display:inline-flex;padding:1px 7px;border-radius:20px;font-size:10.5px;font-weight:500;background:rgba(232,161,60,.14);color:var(--amber);}
-.parc-zero{color:var(--gray-2);}
-/* Tabela de criativos: mais colunas → largura mínima maior */
-#table-sec .tbl{min-width:1240px;}
+
 /* Tabela "Vendas por produto" — primeira coluna alinhada à esquerda */
 #prod-breakdown-sec .tbl{min-width:680px;}
 #prod-breakdown-sec .tbl th:first-child,#prod-breakdown-sec .tbl td:first-child{text-align:left;padding-left:16px;}
 #prod-breakdown-sec .tbl td:last-child{text-align:left;font-family:var(--grotesk);font-size:11px;}
 #prod-breakdown-sec .tbl th:last-child{text-align:left;}
-/* Tabela "Públicos vs KPIs" */
-#audience-sec .tbl{min-width:1080px;}
-#audience-sec .tbl th:first-child,#audience-sec .tbl td:first-child{text-align:left;padding-left:16px;}
-#audience-sec .tbl td.cr-name{max-width:280px;}
+
 .empty{padding:48px;text-align:center;color:var(--gray-2);font-size:13px;}
 .empty .big{font-family:var(--display);font-size:40px;color:var(--bg-3);margin-bottom:12px;}
+
 ::-webkit-scrollbar{width:5px;height:6px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--bg-3);border-radius:4px;}
+
 @media(max-width:900px){
   .sidebar{display:none;}
   .main{padding:16px 16px 60px;}
@@ -201,6 +204,8 @@ canvas{width:100%!important;}
   .side-rates{flex-direction:row;flex-wrap:wrap;padding:16px 0;}
   .phm-side{display:none;}
 }
+
+
 /* LOGIN */
 body.auth-pending{overflow:hidden;}
 body.auth-pending .shell{visibility:hidden;pointer-events:none;}
@@ -222,6 +227,7 @@ body:not(.auth-pending) .login-screen{display:none;}
 .top-actions{display:flex;align-items:center;gap:12px;}
 .btn-logout{background:transparent;border:1px solid var(--line);color:var(--gray);font-family:var(--grotesk);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:8px 10px;border-radius:9px;cursor:pointer;transition:all .2s;}
 .btn-logout:hover{border-color:var(--accent);color:var(--accent);}
+
 /* HOTMART-LIKE DATE RANGE */
 .hm-period{position:relative;}
 .period-trigger{height:38px;background:var(--bg-3);}
@@ -268,9 +274,11 @@ body:not(.auth-pending) .login-screen{display:none;}
 .hm-apply{background:#5c7ee5;color:#fff;border:1px solid #5c7ee5;}
 .hm-apply:hover{filter:brightness(1.04);}
 @media(max-width:600px){.hm-period-dd{width:calc(100vw - 32px);min-width:0;left:0;}.hm-date-display{font-size:14px}.hm-day{height:32px;font-size:15px}.hm-actions button{font-size:16px}.hm-month-pill{font-size:16px;gap:18px}}
+
 </style>
 </head>
 <body class="auth-pending">
+
 <div class="login-screen" id="loginScreen" aria-label="Tela de acesso dotb">
   <div class="login-card">
     <div class="login-brand">dot<span>b</span></div>
@@ -289,6 +297,7 @@ body:not(.auth-pending) .login-screen{display:none;}
     </form>
   </div>
 </div>
+
 <div class="shell">
   <aside class="sidebar">
     <div>
@@ -301,7 +310,6 @@ body:not(.auth-pending) .login-screen{display:none;}
       <button class="nav-item" data-target="chart-sec"><span class="nav-dot"></span>Evolução diária</button>
       <button class="nav-item" data-target="funnel-meta-sec"><span class="nav-dot"></span>Funil Meta Ads</button>
       <button class="nav-item" data-target="table-sec"><span class="nav-dot"></span>Criativos</button>
-      <button class="nav-item" data-target="audience-sec"><span class="nav-dot"></span>Públicos</button>
       <button class="nav-item" data-target="prod-breakdown-sec"><span class="nav-dot"></span>Vendas por produto</button>
       <button class="nav-item" data-target="funnel-phm-sec"><span class="nav-dot"></span>Funil PHM</button>
     </nav>
@@ -310,6 +318,7 @@ body:not(.auth-pending) .login-screen{display:none;}
       <div class="sb-foot-val" id="sbDate">—</div>
     </div>
   </aside>
+
   <main class="main">
     <div class="topbar">
       <div>
@@ -318,6 +327,7 @@ body:not(.auth-pending) .login-screen{display:none;}
       </div>
       <div class="top-actions"><div class="ts" id="tsNow">—</div><button class="btn-logout" id="btnLogout" type="button">Sair</button></div>
     </div>
+
     <!-- FILTERS -->
     <div class="filter-bar">
       <div class="fg">
@@ -359,6 +369,7 @@ body:not(.auth-pending) .login-screen{display:none;}
           </div>
         </div>
       </div>
+
       <div class="fg">
         <div class="flbl">Campanhas (Meta)</div>
         <div class="dd-wrap">
@@ -370,6 +381,7 @@ body:not(.auth-pending) .login-screen{display:none;}
           </div>
         </div>
       </div>
+
       <div class="fg">
         <div class="flbl">Produto (Hotmart)</div>
         <div class="dd-wrap">
@@ -381,6 +393,7 @@ body:not(.auth-pending) .login-screen{display:none;}
           </div>
         </div>
       </div>
+
       <div class="fg">
         <div class="flbl">Status Transação</div>
         <div class="status-checks">
@@ -389,6 +402,7 @@ body:not(.auth-pending) .login-screen{display:none;}
           <label class="sc-item"><input type="checkbox" id="stOther"> outros</label>
         </div>
       </div>
+
       <div class="f-spacer"></div>
       <div class="f-actions">
         <div class="ref-status" id="refStatus"><span class="pulse"></span><span id="refTxt">Carregado</span></div>
@@ -400,6 +414,7 @@ body:not(.auth-pending) .login-screen{display:none;}
         <button class="btn-apply" id="btnApply">Aplicar</button>
       </div>
     </div>
+
     <!-- KPIs -->
     <div id="kpis" class="kpi-grid">
       <div class="kpi"><div class="kpi-lbl">Vendas</div><div class="kpi-val" id="kVendas">—</div><div class="kpi-sub">Recurrency 1/vazio + assinatura</div></div>
@@ -409,6 +424,7 @@ body:not(.auth-pending) .login-screen{display:none;}
       <div class="kpi"><div class="kpi-lbl">ROAS</div><div class="kpi-val" id="kROAS">—</div><div class="kpi-sub">sobre fat. bruto</div></div>
       <div class="kpi"><div class="kpi-lbl">CAC</div><div class="kpi-val"><span class="cur">R$</span><span id="kCAC">—</span></div><div class="kpi-sub">custo / aquisição</div></div>
     </div>
+
     <!-- CHART -->
     <div class="section" id="chart-sec">
       <div class="section-head"><h2 class="section-title">Evolução <em>diária</em></h2><span class="section-tag">Faturamento · Investimento · ROAS</span></div>
@@ -424,6 +440,7 @@ body:not(.auth-pending) .login-screen{display:none;}
         <div class="chart-canvas-wrap" id="chartWrap"><canvas id="chartDaily"></canvas></div>
       </div>
     </div>
+
     <!-- FUNNEL META -->
     <div class="section" id="funnel-meta-sec">
       <div class="section-head"><h2 class="section-title">Funil <em>Meta Ads</em></h2><span class="section-tag">Atualiza com a seleção de campanhas</span></div>
@@ -474,9 +491,10 @@ body:not(.auth-pending) .login-screen{display:none;}
         </div>
       </div>
     </div>
-    <!-- TABLE CRIATIVOS -->
+
+    <!-- TABLE -->
     <div class="section" id="table-sec">
-      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag">Meta Ads × Hotmart limpo (SCK) · Receita valor cheio</span></div>
+      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag">Meta Ads · vendas por anúncio</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
@@ -488,10 +506,6 @@ body:not(.auth-pending) .login-screen{display:none;}
             <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="parceladas">Parceladas <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="receita">Receita <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="roas">ROAS <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="cac">CAC <span class="sort-caret"></span></th>
             <th>Links</th>
           </tr></thead>
           <tbody id="tblCreativos"></tbody>
@@ -499,29 +513,7 @@ body:not(.auth-pending) .login-screen{display:none;}
         </table>
       </div>
     </div>
-    <!-- TABLE PÚBLICOS -->
-    <div class="section" id="audience-sec">
-      <div class="section-head"><h2 class="section-title">Públicos <em>vs KPIs</em></h2><span class="section-tag">Meta Adset Name × Hotmart SCK (segmentação) · Receita valor cheio</span></div>
-      <div class="tbl-wrap">
-        <table class="tbl">
-          <thead><tr>
-            <th class="sortable" data-sort="code">Público / Conjunto de anúncios <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="invest">Investimento <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="impr">Impressões <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="clicks">Cliques <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="parceladas">Parceladas <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="receita">Receita <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="roas">ROAS <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="cac">CAC <span class="sort-caret"></span></th>
-          </tr></thead>
-          <tbody id="tblAudience"></tbody>
-          <tfoot id="tblAudienceFoot"></tfoot>
-        </table>
-      </div>
-    </div>
+
     <!-- BREAKDOWN POR PRODUTO -->
     <div class="section" id="prod-breakdown-sec">
       <div class="section-head"><h2 class="section-title">Vendas <em>por produto</em></h2><span class="section-tag">Vendas = Recurrency 1/vazio · Assinatura = SUBSCRIPTION</span></div>
@@ -538,6 +530,7 @@ body:not(.auth-pending) .login-screen{display:none;}
         </table>
       </div>
     </div>
+
     <!-- FUNNEL PHM -->
     <div class="section" id="funnel-phm-sec">
       <div class="section-head"><h2 class="section-title">Funil <em>PHM</em></h2><span class="section-tag">Lead PHM → Plano Head de Marketing → Full Stack Marketing · cruzamento por e-mail (approved/completed)</span></div>
@@ -547,17 +540,31 @@ body:not(.auth-pending) .login-screen{display:none;}
     </div>
   </main>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 "use strict";
 // ═══ CONFIG ═══
+// ── CONFIGURAÇÃO RECOMENDADA ──────────────────────────────────────────────
+// Cole aqui o ID REAL da planilha (não o de publicação) para usar o endpoint
+// oficial GViz, que é mais rápido e funciona SEM proxy CORS.
+// Como achar: abra a planilha no Google Sheets, olhe a URL:
+//   https://docs.google.com/spreadsheets/d/AQUI_VAI_O_ID/edit#gid=0
+// Cole apenas a parte AQUI_VAI_O_ID (sem aspas extras, sem espaços).
+// Importante: a planilha precisa estar compartilhada como "Qualquer pessoa
+// com o link pode ver".
 const SHEET_ID = '';
+
 const URLS = {
   meta:        'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=1463017033&single=true&output=csv',
+  // Fonte oficial para KPIs, gráfico, produtos e tabela: aba Hotmart (gid 721086669)
+  // Esta aba contém as colunas Sales History Recurrency Number e Sales History Offer Payment Mode.
   hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv',
   phm:         'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=2130889671&single=true&output=csv',
+  // Mesma aba Hotmart também alimenta o Funil PHM, evitando divergência de cabeçalhos.
   hotmartFull: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv'
 };
+
 let RAW = { meta: [], hotmart: [], phm: [], hotmartFull: [] };
 let COLS = {}; // detected column names
 let DATE_MIN='', DATE_MAX='';
@@ -565,35 +572,38 @@ let DP={viewDate:null,draftFrom:'',draftTo:'',draftPreset:'30'};
 let chartInstance=null;
 let TABLE_ROWS=[];                 // linhas calculadas da tabela de criativos
 let TABLE_TOTALS=null;             // totais (rodapé)
-let SORT={key:'invest',dir:'desc'}; // estado de ordenação da tabela de criativos
-let AUD_ROWS=[];                   // linhas calculadas da tabela de públicos
-let AUD_TOTALS=null;               // totais (rodapé) dos públicos
-let AUD_SORT={key:'invest',dir:'desc'}; // estado de ordenação da tabela de públicos
+let SORT={key:'invest',dir:'desc'}; // estado de ordenação da tabela
 let HOT_PRODUCT_VALUE_STATS = {};     // estatística por produto para identificar parcelas prováveis quando a coluna de recorrência não vem na aba
 const escAttr = s => String(s).replace(/"/g,'&quot;');
 const IG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>';
+
 // ─── AJUSTE MANUAL (opcional) ───────────────────────────
+// Se a detecção automática errar alguma coluna, escreva aqui o NOME EXATO
+// do cabeçalho da planilha. Deixe '' para detecção automática.
 const COL_OVERRIDE = {
-  metaDate:'', metaCamp:'', metaAd:'', metaAdset:'', metaSpend:'', metaImpr:'', metaClick:'',
+  metaDate:'', metaCamp:'', metaAd:'', metaSpend:'', metaImpr:'', metaClick:'',
+  // Vendas da tabela/funil Meta: usar EXATAMENTE este cabeçalho da planilha Meta Ads.
   metaPageView:'', metaCheckout:'', metaPurch:'Action Omni Purchase', metaPurchVal:'',
   metaPermalink:'', metaThumb:'',
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
   hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
-  hotSegmentacao:'', // SEGMENTAÇÃO na Hotmart limpa → cruza com o Adset Name do Meta
-  hotPrice:'',       // valor cheio do produto (usado na Receita das vendas parceladas)
-  hotInstallments:'',// nº de parcelas (identifica venda parcelada)
-  hotTxnId:'', hotBuyer:'',  // ID da transação (PRIORIDADE de dedupe) e nome do comprador
+  hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
   hotRecurrency:'Sales History Recurrency Number', // trava a QTD de vendas na coluna correta da aba Hotmart
   hotPaymentMode:'Sales History Offer Payment Mode', // assinatura usa SUBSCRIPTION e não segue a regra de Recurrency
+  // Hotmart-PHM também passa a alimentar a QTD global de vendas únicas.
   hotFullDate:'', hotFullDateBR:'', hotFullProd:'', hotFullStatus:'', hotFullValue:'',
   hotFullEmail:'', hotFullPhone:'', hotFullTxnId:'', hotFullBuyer:'', hotFullRecurrency:'Sales History Recurrency Number', hotFullPaymentMode:'Sales History Offer Payment Mode',
   phmEmail:'', phmPhone:''
 };
+
+// Palavras-chave (minúsculas) que identificam cada produto no funil PHM.
+// O nome do produto na Hotmart só precisa CONTER uma destas palavras.
 const PHM_PRODUCTS = {
   phm:  ['plano head de marketing','head de marketing','plano head','head mkt','phm'],
   full: ['full stack marketing','full stack','fullstack','formação full','formacao full','full-stack']
 };
+
 // ═══ CSV ═══
 function parseCSV(text){
   const rows=[]; let row=[],cur='',inQ=false;
@@ -623,13 +633,21 @@ function cleanRows(rows,label){
   else console.log(`[dotb] ${label}: ${valid.length} válidas`);
   return valid;
 }
+
 // ═══ CARREGAMENTO GOOGLE SHEETS ═══
+// Estratégias, em ordem:
+//   A. GViz CSV direto (se SHEET_ID preenchido) — sem proxy, mais confiável.
+//   B. URL direto da publicação (funciona se a aba está publicada como CSV).
+//   C. Cascata de proxies CORS (codetabs, allorigins, thingproxy).
+//   D. GViz via <script> (último recurso, evita CORS por completo).
 const PROXIES=[
-  u=>u,
-  u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),
-  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
-  u=>'https://thingproxy.freeboard.io/fetch/'+u
+  u=>u,                                                                          // direto
+  u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),           // codetabs (free, estável em 2026)
+  u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),                // allorigins (free, instável)
+  u=>'https://thingproxy.freeboard.io/fetch/'+u                                  // thingproxy (limite ~100k/dia)
 ];
+
+// Detecta se o que voltou é CSV de verdade, ou HTML de tela de login/erro.
 function looksLikeCSV(text){
   if(!text || text.length < 5) return false;
   const lower = text.toLowerCase().slice(0, 2000);
@@ -637,7 +655,9 @@ function looksLikeCSV(text){
   if(lower.includes('servicelogin') || lower.includes('accounts.google')) return false;
   return true;
 }
+
 async function fetchCSV(url){
+  // ─── Estratégia A: GViz CSV direto via ID real (mais rápido, sem proxy) ───
   if(SHEET_ID){
     try{
       const gid = new URL(url).searchParams.get('gid') || '0';
@@ -652,6 +672,8 @@ async function fetchCSV(url){
       }
     }catch(e){ /* segue pra próxima estratégia */ }
   }
+
+  // ─── Estratégia B+C: URL direto + cascata de proxies ───
   for(let i=0; i<PROXIES.length; i++){
     try{
       const r = await fetch(PROXIES[i](url), {cache:'no-store'});
@@ -665,15 +687,19 @@ async function fetchCSV(url){
       }
     }catch(e){ /* tenta próximo */ }
   }
+
+  // ─── Estratégia D: GViz via <script> (sem CORS) ───
   console.warn('[dotb] Direto + proxies falharam. Tentando GViz via <script> para:', url);
   return await fetchCSVViaGviz(url);
 }
 function gvizUrlFromPublishedCsv(url){
   const u = new URL(url);
   const gid = u.searchParams.get('gid') || '0';
+  // Se SHEET_ID estiver preenchido, usa o endpoint oficial /d/<ID>/gviz (mais confiável)
   if(SHEET_ID){
     return 'https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:json&gid='+encodeURIComponent(gid)+'&_='+Date.now();
   }
+  // Caso contrário, tenta gviz no endpoint publicado (funciona em algumas planilhas)
   const base = url.replace(/\/pub.*$/,'');
   return base + '/gviz/tq?tqx=out:json&gid=' + encodeURIComponent(gid) + '&_=' + Date.now();
 }
@@ -686,6 +712,7 @@ function gvizCellValue(cell){
   if(cell.f !== undefined && cell.f !== null) return cell.f;
   const v = cell.v;
   if(v === undefined || v === null) return '';
+  // Datas no GViz podem vir como Date(2026,5,29). Converte para dd/mm/aaaa.
   if(typeof v === 'string'){
     const m = v.match(/^Date\((\d+),(\d+),(\d+)/);
     if(m){
@@ -712,6 +739,7 @@ function gvizResponseToCSV(resp){
 }
 let GVIZ_CHAIN = Promise.resolve();
 function fetchCSVViaGviz(url){
+  // Serializa chamadas porque o Google retorna sempre google.visualization.Query.setResponse(...).
   GVIZ_CHAIN = GVIZ_CHAIN.then(()=>new Promise((resolve,reject)=>{
     const gvizUrl = gvizUrlFromPublishedCsv(url);
     window.google = window.google || {};
@@ -753,6 +781,7 @@ function fetchCSVViaGviz(url){
   }));
   return GVIZ_CHAIN;
 }
+
 // ═══ HELPERS ═══
 const fmtN = n => new Intl.NumberFormat('pt-BR').format(Math.round(n||0));
 const fmtM = n => new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);
@@ -760,14 +789,9 @@ const fmtP = n => ((n||0)*100).toFixed(2).replace('.',',')+' %';
 const fmtR = n => (n||0).toFixed(2).replace('.',',')+'x';
 const money0 = n => 'R$ '+fmtN(n);   // arredondado, sem casas decimais
 const money2 = n => 'R$ '+fmtM(n);   // duas casas decimais
-function roasBadge(v){
-  const cls = (v>=1) ? 'badge-green' : 'badge-red';
-  return '<span class="roas-badge '+cls+'">'+fmtR(v)+'</span>';
-}
-function parcCell(n){
-  return n>0 ? '<span class="parc-badge">'+fmtN(n)+'</span>' : '<span class="parc-zero">0</span>';
-}
+// Fallback p/ thumbnail quebrada (Meta às vezes expira a URL)
 window.dotbImgFail = function(el){ const s=document.createElement('span'); s.className='cr-noimg'; s.textContent='—'; el.replaceWith(s); };
+
 function parseDate(s){
   if(!s) return null; s=String(s).trim();
   let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3];
@@ -778,7 +802,9 @@ function parseDate(s){
 function parseMoney(s){
   if(s===null||s===undefined||s==='') return 0;
   if(typeof s==='number') return s;
+  // Remove aspas, R$, espaços e outros caracteres não numéricos exceto vírgula e ponto
   let str=String(s).replace(/["R$\s]/gi,'');
+  // pt-BR: 1.234,56  → remove thousand dots, comma→dot
   if(/,\d{1,2}$/.test(str)) str=str.replace(/\./g,'').replace(',','.');
   else str=str.replace(/,/g,'');
   const n=parseFloat(str); return isNaN(n)?0:n;
@@ -786,7 +812,7 @@ function parseMoney(s){
 function num(s){ const n=parseFloat(String(s).replace(/[^\d.-]/g,'')); return isNaN(n)?0:n; }
 function normText(s){
   const str = String(s||'').toLowerCase();
-  return str.normalize ? str.normalize('NFD').replace(/[̀-ͯ]/g,'') : str;
+  return str.normalize ? str.normalize('NFD').replace(/[\u0300-\u036f]/g,'') : str;
 }
 function normCompact(s){ return normText(s).replace(/[^a-z0-9]/g,''); }
 function normSpaced(s){ return normText(s).replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' '); }
@@ -827,6 +853,8 @@ function buildHotProductValueStats(){
   });
 }
 function rowInstallmentClue(r){
+  // Procura pista de parcela em qualquer coluna, mesmo que o cabeçalho exato não tenha sido detectado.
+  // Retorna: 'first' | 'later' | null
   if(!r) return null;
   for(const [k,v] of Object.entries(r)){
     const h = normSpaced(k);
@@ -848,6 +876,10 @@ function rowInstallmentClue(r){
   return null;
 }
 function isLikelyInstallmentAmountWithoutRecurrency(r){
+  // Fallback conservador quando a aba não traz recurrency/parcela.
+  // Ex.: Full Stack tem venda cheia ~R$ 1.395,36 e parcelas ~R$ 239,34.
+  // Sem a coluna de recorrência, valores muito menores que o ticket típico do produto
+  // são tratados como parcela/recorrência para NÃO inflar quantidade de vendas e CAC.
   if(COLS.hotRecurrency) return false;
   const v = COLS.hotValue ? parseMoney(r[COLS.hotValue]) : 0;
   if(v<=0) return false;
@@ -855,8 +887,13 @@ function isLikelyInstallmentAmountWithoutRecurrency(r){
   if(!st || st.count < 2 || st.max <= 0) return false;
   const ref = Math.max(st.p75 || 0, st.topAvg || 0, st.max || 0);
   if(ref <= 0) return false;
+  // Parcela provável: valor até 45% do ticket alto do mesmo produto, com diferença bem clara.
   return (v <= ref * 0.45) && (ref >= v * 1.8);
 }
+// Datas da Hotmart usadas com objetivos diferentes:
+// - Receita/faturamento: data de recebimento/transação (Data BR), com fallback para Purchase Order Date.
+// - Quantidade de vendas: data da compra original (Purchase Order Date), com fallback para Data BR.
+// Assim uma parcela recebida em 26/06 entra no faturamento de 26/06, mas NÃO vira venda do dia 26/06.
 function hotRevenueDate(r){
   const cashDate = COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null;
   return cashDate || parseDate(r[COLS.hotDate]);
@@ -866,7 +903,17 @@ function hotSaleDate(r){
   const cashDate = COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null;
   return orderDate || cashDate;
 }
+// Mantido como alias para compatibilidade: quando alguém chama hotRowDate, entende-se data de receita.
 function hotRowDate(r){ return hotRevenueDate(r); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EIXO DE DATA ÚNICO (corrige o problema "1 venda mas R$ 0,00 de faturamento")
+// Antes: a VENDA era contada pela data da compra e o FATURAMENTO pela data de
+// recebimento. Quando elas caíam em dias diferentes, ao filtrar 1 dia aparecia
+// venda sem faturamento (ou vice-versa). Agora venda e faturamento usam a MESMA
+// data, então sempre batem no dia que você filtra.
+//   'order' (padrão): data da compra (Purchase Order Date) + fallback recebimento.
+//   'cash'          : data de recebimento (Data BR) + fallback compra (regime de caixa).
 const DATE_BASIS = 'order';
 function hotKpiDate(r){
   if(DATE_BASIS==='cash'){
@@ -874,6 +921,16 @@ function hotKpiDate(r){
   }
   return parseDate(r[COLS.hotDate]) || (COLS.hotDateBR ? parseDate(r[COLS.hotDateBR]) : null);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRAVA POR E-MAIL — chave única do comprador.
+// Usada para contar VENDAS ÚNICAS (mesmo comprador = 1 venda) e gerar o CAC certo.
+// Fallback: telefone. Linha sem e-mail nem telefone conta como 1 (não some).
+// Identidade do comprador para dedupe. Prioridade:
+//   1. Transaction ID (mais robusto — é único por compra; parcelas compartilham)
+//   2. Email
+//   3. Telefone
+//   4. Buyer Name (último recurso, propenso a falsos positivos com nomes comuns)
 function emailKey(r){
   const txn = COLS.hotTxnId ? String(r[COLS.hotTxnId]||'').trim() : '';
   if(txn) return 'txn:'+txn;
@@ -885,6 +942,11 @@ function emailKey(r){
   if(buyer) return 'name:'+buyer;
   return '';
 }
+// Conta vendas únicas. A chave depende do TIPO de identidade encontrado:
+//   - Transaction ID → ÚNICO POR COMPRA na Hotmart. Usa direto, sem combinar com nada.
+//     Duas linhas com mesmo Transaction = mesma compra (parcelas) → 1 venda.
+//   - Email/Telefone/Buyer Name → combina com data da compra (truncada YYYY-MM-DD) + produto,
+//     pra colapsar parcelas da mesma compra que apareçam com timestamps ligeiramente diferentes.
 function saleDedupeKey(r){
   const identity = emailKey(r);
   if(identity && identity.startsWith('txn:')) return identity;
@@ -892,6 +954,9 @@ function saleDedupeKey(r){
   const orderDate = (hotSaleDate(r) || parseDate(orderDateRaw) || orderDateRaw.slice(0,10) || '').slice(0,10);
   const product = COLS.hotProd ? String(r[COLS.hotProd]||'').trim().toLowerCase() : '';
   if(identity) return identity + '|' + orderDate + '|' + product;
+  // Fallback seguro para linhas sem e-mail/telefone/transaction/buyer:
+  // parcela da mesma compra costuma repetir produto + data da compra. Sem identidade,
+  // melhor colapsar isso para não inflar CAC do que contar cada parcela como venda nova.
   return 'anon|' + orderDate + '|' + product;
 }
 function countUniqueSales(rows){
@@ -906,6 +971,10 @@ function hotStatusGroup(st){
   if(s.includes('complet') || s.includes('conclu')) return 'completed';
   return s || '__blank__';
 }
+// Venda na Hotmart para QTD/CAC:
+// REGRA GLOBAL: Sales History Recurrency Number deve estar em branco OU representar a cobrança 1.
+// EXCEÇÃO: quando Sales History Offer Payment Mode = SUBSCRIPTION, a linha entra como venda
+// sem aplicar a regra de Recurrency. O faturamento continua somando todas as transações/parcelas.
 function getRecurrencyValue(r){
   if(!r) return null;
   if(COLS.hotRecurrency && Object.prototype.hasOwnProperty.call(r, COLS.hotRecurrency)) return r[COLS.hotRecurrency];
@@ -940,51 +1009,32 @@ function isFirstRecurrencyValue(val){
   if(/\b(first|primeira|primeiro)\b/.test(t)) return true;
   if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto|sexta|sexto)\b/.test(t)) return false;
   const m = t.match(/\d+/);
-  if(m) return parseInt(m[0],10) === 1;
+  if(m) return parseInt(m[0],10) === 1; // aceita 1, 01, 1/12, 1ª, parcela 1; rejeita 0 e 2/12+
   return false;
 }
 function isUniqueHotmartSale(r){
+  // Exceção solicitada: produto/oferta em modo SUBSCRIPTION entra na QTD sem aplicar Recurrency.
   if(isSubscriptionPaymentMode(getPaymentModeValue(r))) return true;
+
+  // Regra global da QTD de vendas: Recurrency vazio ou 1.
   const val = getRecurrencyValue(r);
   if(val !== null && val !== undefined) return isFirstRecurrencyValue(val);
+
+  // Quando a coluna exata não veio na Hotmart, ainda tenta encontrar pista
+  // em outras colunas e, por último, aplica uma heurística por valor do produto.
   const clue = rowInstallmentClue(r);
   if(clue === 'later') return false;
   if(clue === 'first') return true;
+
   if(isLikelyInstallmentAmountWithoutRecurrency(r)) return false;
   return true;
 }
-// ─── VENDA PARCELADA (parcelamento no cartão) ────────────────────────────────
-// Usada para contar "quantas vendas deste criativo/público vieram parceladas".
-// Assinatura (SUBSCRIPTION) NÃO é parcelamento de cartão → não conta como parcelada.
-function isParceladaRow(r){
-  if(!r) return false;
-  if(isSubscriptionPaymentMode(getPaymentModeValue(r))) return false;
-  // 1) coluna de nº de parcelas > 1
-  if(COLS.hotInstallments){
-    const n = parseInt(String(r[COLS.hotInstallments]||'').replace(/[^\d]/g,''),10);
-    if(!isNaN(n) && n>1) return true;
-  }
-  // 2) modo de pagamento indica parcelamento
-  const pm = normSpaced(getPaymentModeValue(r));
-  if(/installment|parcel/.test(pm)) return true;
-  // 3) valor recebido é fração do preço cheio do produto
-  if(COLS.hotPrice && COLS.hotValue){
-    const price = parseMoney(r[COLS.hotPrice]);
-    const val   = parseMoney(r[COLS.hotValue]);
-    if(price>0 && val>0 && price > val*1.5) return true;
-  }
-  return false;
-}
-// Valor cheio da venda (1x). Prioriza a coluna de preço cheio; senão usa o valor da transação.
-function saleFullPrice(r){
-  if(COLS.hotPrice){ const p = parseMoney(r[COLS.hotPrice]); if(p>0) return p; }
-  return COLS.hotValue ? parseMoney(r[COLS.hotValue]) : 0;
-}
 function normPhone(p){ if(!p) return ''; return String(p).replace(/\D/g,'').slice(-9); }
+// Extrai o código do criativo: "B04_PHM_FAZTUDO" → "B04" ; "B04" → "B04"
 function extractCode(s){
   if(!s) return '';
   const str = String(s).trim();
-  if(str.startsWith('[field')) return '';
+  if(str.startsWith('[field')) return ''; // ignora campos não preenchidos da Hotmart
   return str.split(/[_\-\s.|/]+/)[0].toUpperCase();
 }
 function colFind(headers,patterns){
@@ -998,30 +1048,37 @@ function colFind(headers,patterns){
 function setText(id,v){ const e=document.getElementById(id); if(e) e.textContent=v; }
 function toISO(d){ return d.toISOString().slice(0,10); }
 function offsetDay(d,n){ const c=new Date(d); c.setDate(c.getDate()+n); return c; }
+
 // ═══ DETECT COLUMNS ═══
 function detectColumns(){
   const mh=RAW.meta[0]?Object.keys(RAW.meta[0]):[];
   const hh=RAW.hotmart[0]?Object.keys(RAW.hotmart[0]):[];
   const ph=RAW.phm[0]?Object.keys(RAW.phm[0]):[];
   const fh=RAW.hotmartFull[0]?Object.keys(RAW.hotmartFull[0]):[];
+
   COLS.metaDate    = colFind(mh,[/^dia$/,/^date$/,/^data$/,/reporting_start/,/^day$/,/dia/]);
   COLS.metaCamp    = colFind(mh,[/nome da campanha/,/campaign.?name/,/campanha/,/campaign/]);
   COLS.metaAd      = colFind(mh,[/nome do an[uú]ncio/,/ad.?name/,/an[uú]ncio/,/creative/,/criativo/]);
-  // ADSET / CONJUNTO DE ANÚNCIOS → cruza com a SEGMENTAÇÃO da Hotmart limpa
-  COLS.metaAdset   = colFind(mh,[/nome do conjunto de an[uú]ncios/,/ad.?set.?name/,/adset.?name/,/conjunto de an[uú]ncios/,/\bad.?set\b/,/\badset\b/,/conjunto/,/segmenta/]);
   COLS.metaSpend   = colFind(mh,[/valor usado/,/amount.?spent/,/^spend$/,/investimento/,/gasto/,/custo/,/^cost$/]);
   COLS.metaImpr    = colFind(mh,[/impress/]);
+  // CLIQUES = Link Clicks (prioridade total). Demais cliques só como fallback.
   COLS.metaClick   = colFind(mh,[/^link.?clicks?$/,/\blink.?clicks?\b/,/inline.?link.?clicks?/,/cliques no link\b/,/cliques de sa[ií]da [uú]nicos/,/unique.?link.?click/,/outbound.?click/,/^clicks?$/,/cliques/,/click/]);
   COLS.metaPageView= colFind(mh,[/visualiza[çc][aã]o de p[aá]gina/,/landing.?page.?view/,/page.?view/,/visualiza/]);
+  // INÍCIO DE CHECKOUT = Action Omni Initiated Checkout
   COLS.metaCheckout= colFind(mh,[/action.?omni.?initiated.?checkout/,/omni.?initiated.?checkout/,/initiated.?checkout/,/in[ií]cio.*checkout/,/in[ií]cio de checkout/,/checkout.?initiat/,/add.?to.?cart/,/checkout/]);
+  // VENDAS META = Action Omni Purchase (prioridade/exato). O override acima trava este cabeçalho.
   COLS.metaPurch   = colFind(mh,[/^action omni purchase$/, /action.?omni.?purchase/, /compras/, /^purchase/, /purchase/, /^vendas/, /conversões de compra/]);
   COLS.metaPurchVal= colFind(mh,[/valor de convers[aã]o.*compra/,/purchase.*conversion.?value/,/valor.*compra/,/conversion.?value/,/receita/]);
   COLS.metaPermalink= colFind(mh,[/instagram.?permalink.?url/,/instagram.?permalink/,/permalink.?url/,/permalink/]);
   COLS.metaThumb   = colFind(mh,[/thumbnail.?url/,/thumbnail/,/image.?url/,/\bthumb\b/]);
+
   COLS.hotDate     = colFind(hh,[/^sales history order date$/,/^purchase order date$/,/order.?date/,/purchase.?order.?date/,/purchase.?date/,/data.*venda/,/^date$/,/created/]);
+  // Data de recebimento/transação: é a data correta para somar faturamento diário, inclusive parcelas recebidas.
   COLS.hotDateBR   = colFind(hh,[/^sales history approved date$/,/^data br$/,/approved.?date/,/payment.?date/,/paid.?date/,/transaction.?date/,/approval.?date/,/data.*pagamento/,/data.*receb/,/data.*transa/,/^data$/]);
   COLS.hotProd     = colFind(hh,[/sales history product name/,/product.?name/,/nome.*produto/,/produto/,/product/]);
   COLS.hotStatus   = colFind(hh,[/sales history transaction status/,/transaction.?status/,/status/]);
+  // Valor de faturamento: priorizar o valor REAL da transação/parcela recebida.
+  // NÃO usar "Sales History Price", pois ele representa o preço cheio/cadastrado do produto.
   COLS.hotValue    = colFind(hh,[
     /^sales history transaction value$/,
     /^sales history transaction amount$/,
@@ -1042,18 +1099,14 @@ function detectColumns(){
   if(COLS.hotValue && /sales history price/i.test(COLS.hotValue)){
     console.warn('[dotb] ATENÇÃO: coluna de valor detectada como Sales History Price. Isso pode somar preço cheio. Ajuste a planilha/override para a coluna de valor da transação/parcela.');
   }
-  // PREÇO CHEIO do produto (usado na Receita valor-cheio das parceladas)
-  COLS.hotPrice    = colFind(hh,[/^sales history price$/,/sales history.*\bprice$/,/sales history.*full.*price/,/^price$/,/full.*price/,/pre[çc]o.*cheio/,/valor.*cheio/,/pre[çc]o.*produto/,/valor.*produto/,/^pre[çc]o$/]);
-  // Nº DE PARCELAS (identifica venda parcelada)
-  COLS.hotInstallments = colFind(hh,[/^sales history installments? number$/,/sales history.*installments?.*number/,/installments?.?number/,/n[uú]mero.*parcela/,/quantidade.*parcela/,/qtd.*parcela/,/^installments?$/,/^parcelas$/]);
   COLS.hotEmail    = colFind(hh,[/sales history buyer email/,/buyer.?email/,/e-?mail/,/email/]);
   COLS.hotPhone    = colFind(hh,[/buyer.?phone/,/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/]);
+  // Transaction ID da Hotmart — IDENTIFICADOR ÚNICO DE COMPRA. Parcelas da mesma compra
+  // compartilham o mesmo Transaction. Usado como prioridade #1 na chave de dedupe.
   COLS.hotTxnId    = colFind(hh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
+  // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
-  COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
-  // SEGMENTAÇÃO da Hotmart limpa (público/adset). Detecta a coluna literal SEGMENTAÇÃO
-  // e, como fallback, o segundo par de rastreio (SRC / utm_medium / utm_term).
-  COLS.hotSegmentacao = colFind(hh,[/^segmenta[çc][aã]o$/,/segmenta[çc][aã]o/,/^p[uú]blico$/,/p[uú]blico/,/audience/,/sales history tracking source src/,/tracking source src/,/^src$/,/utm.?medium/,/utm.?term/,/ad.?set/,/conjunto/]);
+  COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
     /sales.?history.*recurrency.*number/,
@@ -1091,8 +1144,8 @@ function detectColumns(){
     /modo.*pagamento/,
     /forma.*pagamento/
   ]);
-  // Evita que o nº de parcelas aponte para a mesma coluna de recorrência
-  if(COLS.hotInstallments && COLS.hotInstallments===COLS.hotRecurrency) COLS.hotInstallments=null;
+
+  // Aba Hotmart COMPLETA/PHM — também usada para QTD global de vendas únicas.
   COLS.hotFullDate     = colFind(fh,[/^sales history order date$/,/^purchase order date$/,/order.?date/,/purchase.?order.?date/,/purchase.?date/,/data.*venda/,/^date$/,/created/]);
   COLS.hotFullDateBR   = colFind(fh,[/^sales history approved date$/,/^data br$/,/approved.?date/,/payment.?date/,/paid.?date/,/transaction.?date/,/approval.?date/,/data.*pagamento/,/data.*receb/,/data.*transa/,/^data$/]);
   COLS.hotFullEmail    = colFind(fh,[/sales history buyer email/,/buyer.?email/,/e-?mail/,/email/]);
@@ -1155,9 +1208,16 @@ function detectColumns(){
     /modo.*pagamento/,
     /forma.*pagamento/
   ]);
+
   COLS.phmEmail    = colFind(ph,[/e-?mail/,/email/]);
   COLS.phmPhone    = colFind(ph,[/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/,/n[uú]mero/]);
+
+  // Aplica overrides manuais
   Object.keys(COL_OVERRIDE).forEach(k=>{ if(COL_OVERRIDE[k]) COLS[k]=COL_OVERRIDE[k]; });
+
+  // SALVA-VIDAS DO FATURAMENTO: se a coluna de valor detectada somar R$ 0,00 nas
+  // linhas aprovadas, procura automaticamente outra coluna que de fato tenha valor
+  // (prioriza colunas de transação/recebido; "Price"/preço cheio só como último recurso).
   if(!COL_OVERRIDE.hotValue){
     const sumOf=c=>{ let s=0; RAW.hotmart.forEach(r=>{ if(['approved','completed'].includes(hotStatusGroup(r[COLS.hotStatus]))) s+=parseMoney(r[c]); }); return s; };
     const curSum = COLS.hotValue ? sumOf(COLS.hotValue) : 0;
@@ -1172,26 +1232,68 @@ function detectColumns(){
       }
     }
   }
+
   buildHotProductValueStats();
   console.log('%c[dotb] Colunas detectadas:','color:#89cc72;font-weight:bold', COLS);
-  console.log('%c[dotb] Cruzamento criativos/públicos:','color:#89cc72;font-weight:bold');
-  console.log('  • Meta Ad name:   ', COLS.metaAd || '(não detectada)');
-  console.log('  • Meta Adset:     ', COLS.metaAdset || '(não detectada)');
-  console.log('  • Hotmart SCK (criativo+segmentação):', COLS.hotCreative || '(não detectada)');
-  console.log('  • Hotmart preço cheio:', COLS.hotPrice || '(não detectada — Receita usará o valor da transação)');
-  console.log('  • Hotmart nº parcelas:', COLS.hotInstallments || '(não detectada — parcelada por modo de pagamento/valor)');
-  if(!COLS.metaAdset) console.warn('[dotb] ⚠ Coluna de Adset/Conjunto do Meta não detectada. A tabela Públicos ficará vazia. Ajuste COL_OVERRIDE.metaAdset com o nome exato do cabeçalho.');
-  if(!COLS.hotCreative) console.warn('[dotb] ⚠ Coluna SCK da Hotmart não detectada. As tabelas Criativos e Públicos não terão vendas cruzadas. Ajuste COL_OVERRIDE.hotCreative (Sales History Tracking Source SCK).');
-  if(!COLS.hotPrice) console.warn('[dotb] ⚠ Coluna de preço cheio não detectada. Nas parceladas a Receita usará o valor da transação (parcela). Para "valor cheio", ajuste COL_OVERRIDE.hotPrice (ex.: Sales History Price).');
+  console.log('%c[dotb] Identidade do comprador na Hotmart:','color:#89cc72;font-weight:bold');
+  console.log('  • Transaction ID:', COLS.hotTxnId || '(não detectada)');
+  console.log('  • Buyer Name:    ', COLS.hotBuyer || '(não detectada)');
+  console.log('  • Email:         ', COLS.hotEmail || '(não detectada)');
+  console.log('  • Phone:         ', COLS.hotPhone || '(não detectada)');
+  if(!COLS.hotTxnId && !COLS.hotEmail) console.warn('[dotb] ⚠ Sem Transaction ID nem Email — dedupe vai usar Buyer Name; se também faltar, vai colapsar por data da compra + produto para não inflar CAC.');
+  if(!COLS.hotRecurrency) console.warn('[dotb] ⚠ Coluna de recorrência não detectada. Ativei fallback conservador: procura pistas de parcela em outras colunas e ignora valores muito menores que o ticket típico do produto para não inflar CAC. Para máxima precisão, mantenha a coluna Sales History Recurrency Number na aba Hotmart.');
+  else console.log('[dotb] Coluna de recorrência detectada:', COLS.hotRecurrency);
+  console.log('[dotb] Coluna Offer Payment Mode Hotmart:', COLS.hotPaymentMode || '(não detectada)');
   console.log('[dotb] Cabeçalhos Meta:', mh);
   console.log('[dotb] Cabeçalhos Hotmart (limpo):', hh);
+  console.log('[dotb] Coluna recorrência Hotmart-PHM:', COLS.hotFullRecurrency||'(não detectada)');
+  console.log('[dotb] Coluna Offer Payment Mode Hotmart-PHM:', COLS.hotFullPaymentMode || '(não detectada)');
   console.log('[dotb] Cabeçalhos Hotmart (completo/PHM):', fh);
   console.log('[dotb] Cabeçalhos PHM:', ph);
+
+  // Cobertura de datas na Hotmart (Purchase Order Date + fallback Data BR)
+  if(RAW.hotmart.length){
+    let cash=0, purch=0, none=0;
+    RAW.hotmart.forEach(r=>{
+      if(COLS.hotDateBR && parseDate(r[COLS.hotDateBR])) cash++;
+      else if(parseDate(r[COLS.hotDate])) purch++;
+      else none++;
+    });
+    console.log('%c[dotb] Datas Hotmart usadas no filtro → '+(COLS.hotDateBR||'(sem Data BR)')+':'+cash+' | fallback '+(COLS.hotDate||'(nenhuma)')+':'+purch+' | sem data:'+none+' | total:'+RAW.hotmart.length,'color:#89cc72');
+    const stCount={}; let grossAll=0, okAll=0, uniqueAll=0, recurringIgnored=0;
+    RAW.hotmart.forEach(r=>{
+      const st=hotStatusGroup(r[COLS.hotStatus]);
+      stCount[st]=(stCount[st]||0)+1;
+      if(['approved','completed'].includes(st)){
+        okAll++;
+        grossAll+=parseMoney(r[COLS.hotValue]);
+        if(isUniqueHotmartSale(r)) uniqueAll++;
+        else recurringIgnored++;
+      }
+    });
+    console.log('[dotb] Status Hotmart:', stCount);
+    console.log('[dotb] Coluna recorrência Hotmart:', COLS.hotRecurrency||'(não detectada)');
+    console.log(
+      '%c[dotb] RESUMO HOTMART (total, sem filtro de data):\n'
+      +'  • Linhas approved/completed: '+okAll+'\n'
+      +'  • Linhas elegíveis para venda (1ª parcela/venda única após travas): '+uniqueAll+'\n'
+      +'  • Parcelas/recorrências ignoradas na qtd: '+recurringIgnored+'\n'
+      +'  • Faturamento bruto total (todas as parcelas): '+money2(grossAll),
+      'color:#89cc72;font-weight:bold'
+    );
+    if(!COLS.hotRecurrency){
+      console.warn('[dotb] ⚠️ ATENÇÃO: coluna "Sales History Recurrency Number" NÃO detectada.\n'
+        +'Sem essa coluna, a trava principal passa a ser a chave de dedupe por compra (Transaction/Email/Telefone/Buyer; fallback data+produto).\n'
+        +'Para máxima precisão, verifique o nome exato da coluna na planilha ou ajuste COL_OVERRIDE.hotRecurrency.');
+    }
+  }
 }
+
 // ═══ LOAD ═══
 async function loadData(){
   setStatus('loading','Carregando dados…');
   try{
+    // Carrega em sequência para o fallback GViz funcionar com segurança em arquivo local.
     const m  = await fetchCSV(URLS.meta);
     const h  = await fetchCSV(URLS.hotmart);
     const p  = await fetchCSV(URLS.phm);
@@ -1200,6 +1302,8 @@ async function loadData(){
     RAW.hotmart=cleanRows(csvToObjects(h),'Hotmart');
     RAW.phm=cleanRows(csvToObjects(p),'PHM');
     RAW.hotmartFull=cleanRows(csvToObjects(hf),'Hotmart-PHM');
+    console.log('%c[dotb] Fonte Hotmart KPIs/tabela: Hotmart (gid 565168335)','color:#89cc72;font-weight:bold');
+    console.log('%c[dotb] Fonte Hotmart Funil PHM: Hotmart-PHM (gid 721086669)','color:#89cc72;font-weight:bold');
     detectColumns();
     setStatus('ok','Ao vivo · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
     setText('sbDate', new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}));
@@ -1215,6 +1319,7 @@ function setStatus(type,txt){
   el.className='ref-status'+(type==='loading'?' loading':type==='error'?' error':'');
   setText('refTxt',txt);
 }
+
 // ═══ DATE BOUNDS ═══
 function computeDateBounds(){
   const all=[];
@@ -1328,6 +1433,7 @@ function renderDateCalendar(){
     renderDateCalendar();
   }));
 }
+
 // ═══ FILTERS UI ═══
 function initFilters(){
   computeDateBounds();
@@ -1365,6 +1471,7 @@ function ddLabel(prefix,total){
   else if(checked===0) lbl.textContent='Nenhuma';
   else lbl.textContent=checked+' de '+total;
 }
+
 // ═══ DROPDOWN OPEN/CLOSE ═══
 function initDropdowns(){
   [['periodBtn','periodDD'],['campBtn','campDD'],['prodBtn','prodDD']].forEach(([b,d])=>{
@@ -1394,6 +1501,7 @@ function initDropdowns(){
     if(RAW.meta.length || RAW.hotmart.length) render();
   });
 }
+
 // ═══ GET FILTERS ═══
 function getFilters(){
   const from=document.getElementById('dateFrom').value||DATE_MIN;
@@ -1408,6 +1516,7 @@ function getFilters(){
   if(document.getElementById('stOther').checked) statuses.push('__other__');
   return {from,to,camps:allCamps?null:camps,prods:allProds?null:prods,statuses};
 }
+
 // ═══ FILTER DATA ═══
 function filterMeta(f){
   return RAW.meta.filter(r=>{
@@ -1421,100 +1530,32 @@ function hotPassCommonFilters(r,f){
   const st=hotStatusGroup(r[COLS.hotStatus]);
   return f.statuses.some(s=> s==='__other__' ? !['approved','completed'].includes(st) : st===s);
 }
+// FATURAMENTO: soma TODAS as transações do período (venda única + parcelas recebidas).
+// Usa o eixo de data único (hotKpiDate), então o faturamento aparece no mesmo dia da venda.
 function filterHotmartRevenue(f){
   return RAW.hotmart.filter(r=>{
     const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
     return hotPassCommonFilters(r,f);
   });
 }
+// QUANTIDADE DE VENDAS: mesmo período/eixo de data, mas só a 1ª cobrança
+// (recurrency vazio ou =1). A dedupe por e-mail é feita na contagem (countUniqueSales).
 function filterHotmartSales(f){
   return RAW.hotmart.filter(r=>{
     const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return false;
-    if(!isUniqueHotmartSale(r)) return false;
+    if(!isUniqueHotmartSale(r)) return false; // exclui parcelas/recorrências
     return hotPassCommonFilters(r,f);
   });
 }
+// Alias mantido para compatibilidade: retorna linhas de receita (inclui parcelas).
 function filterHotmart(f){ return filterHotmartRevenue(f); }
-// ═══ CRUZAMENTO HOTMART POR CRIATIVO (SCK) E POR SEGMENTAÇÃO ═══
-// Para cada chave (código extraído de SCK ou de SEGMENTAÇÃO):
-//   • vendas     = vendas únicas (Recurrency vazio/1 + dedupe; SUBSCRIPTION é exceção)
-//   • parceladas = quantas dessas vendas foram parceladas (parcelamento no cartão)
-//   • receita    = soma do valor CHEIO (1x por venda) das vendas únicas
-// Respeita os filtros ativos (período, produto, status).
-function buildHotmartCrossIndex(f, keyFn){
-  const map = {};
-  const seenPerKey = {};
-  RAW.hotmart.forEach(r=>{
-    const d=hotKpiDate(r); if(!d||d<f.from||d>f.to) return;
-    if(!hotPassCommonFilters(r,f)) return;
-    const rawKey = keyFn(r);
-    if(!rawKey) return;
-    if(!isUniqueHotmartSale(r)) return;
-    const dk = rawKey+'::'+saleDedupeKey(r);
-    const seen = seenPerKey[rawKey] = seenPerKey[rawKey] || new Set();
-    if(seen.has(dk)) return;
-    seen.add(dk);
-    const b = map[rawKey] = map[rawKey] || {vendas:0, parceladas:0, receita:0};
-    b.vendas++;
-    b.receita += saleFullPrice(r);
-    if(isParceladaRow(r)) b.parceladas++;
-  });
-  return map;
-}
-// ─── SCK carrega TUDO (padrão UTM separado por hífen) ────────────────────────
-// Ex.: dotb-fsm-vend-igfb-feedst-advantage-cpc-frio-ad28
-//   0 marca | 1 PRODUTO | 2 objetivo | 3 canal | 4 posição |
-//   -4 SEGMENTAÇÃO (advantage) | -3 tipo (cpc/org) | -2 temperatura (frio/quente) | -1 CRIATIVO (ad28)
-// Criativo = produto + número do anúncio → chave "FSM_AD28" (casa com Ad Name "AD28_FSM_...").
-// Segmentação = campo -4 normalizado → casa com Adset Name ("advantage", "mix_envolvimento_365d").
-// Vendas de Google/orgânico não entram na atribuição de criativo/público do Meta.
-const NON_META_SCK = /google|tiktok|youtube|linkedin|kwai|taboola/i;
-function parseSCK(sck){
-  const raw=String(sck||'').trim();
-  if(!raw || raw.startsWith('[field')) return null;
-  const parts=raw.split('-').map(s=>s.trim()).filter(Boolean);
-  if(parts.length<2) return null; // "fsm", "HOTMART_SITE" etc. → tráfego direto, sem padrão de anúncio
-  const adMatch=raw.match(/ad(\d+)/i);
-  return {
-    raw, parts,
-    product: parts[1]||'',
-    seg: parts.length>=4 ? parts[parts.length-4] : '',
-    adNum: adMatch ? parseInt(adMatch[1],10) : null,
-    nonMeta: NON_META_SCK.test(raw)
-  };
-}
-function creativeKeyFromSCK(sck){
-  const p=parseSCK(sck);
-  if(!p || p.nonMeta || p.adNum===null || !p.product) return '';
-  return p.product.toUpperCase()+'_AD'+p.adNum;
-}
-function segmentKeyFromSCK(sck){
-  const p=parseSCK(sck);
-  if(!p || p.nonMeta) return '';
-  const seg=normCompact(p.seg);
-  if(!seg || seg==='x') return '';
-  return seg;
-}
-// Chave do criativo a partir do Ad Name do Meta: "AD28_FSM_MESADIRETORIA" → "FSM_AD28".
-function creativeKeyFromAdName(adName){
-  const raw=String(adName||'').trim();
-  if(!raw) return '';
-  const tokens=raw.split(/[_\-\s.]+/).filter(Boolean);
-  const adIdx=tokens.findIndex(t=>/^ad\d+$/i.test(t));
-  if(adIdx>=0){
-    const num=parseInt(tokens[adIdx].replace(/\D/g,''),10);
-    const product=(tokens[adIdx+1]||tokens[1]||'');
-    return product.toUpperCase()+'_AD'+num;
-  }
-  const m=raw.match(/ad(\d+)/i);
-  if(!m) return '';
-  return ((tokens[1]||tokens[0]||'').toUpperCase())+'_AD'+parseInt(m[1],10);
-}
-// Chave do público a partir do Adset Name do Meta ("Advantage"/"ADVANTAGE" → "advantage").
-function segmentKeyFromAdset(adset){ return normCompact(adset)||''; }
-function hotCreativeKey(r){ return COLS.hotCreative ? creativeKeyFromSCK(r[COLS.hotCreative]) : ''; }
-function hotSegmentKey(r){ return COLS.hotCreative ? segmentKeyFromSCK(r[COLS.hotCreative]) : ''; }
+
+
 // ═══ QTD GLOBAL DE VENDAS ÚNICAS ═══
+// A quantidade de vendas/CAC usa uma fonte unificada:
+//   1) Hotmart (KPIs/faturamento)
+//   2) Hotmart-PHM (produtos do funil PHM e produtos futuros)
+// O faturamento continua vindo da Hotmart para não duplicar parcelas/receita.
 function getFirstExistingValue(r, cols){
   for(const c of cols){
     if(c && Object.prototype.hasOwnProperty.call(r,c)) return r[c];
@@ -1580,9 +1621,12 @@ function sourceSaleFields(r, source){
   return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, status, recurrency, paymentMode};
 }
 function productSourceKey(name){
+  // Normaliza o nome do produto para comparar a mesma oferta entre fontes diferentes.
+  // Ex.: "Formação Full Stack Marketing" e variações de maiúsculas/acentos viram a mesma chave.
   return normSpaced(name || '') || '__sem_produto__';
 }
 function sourceSaleKey(sale){
+  // Transaction ID continua sendo prioridade; quando não existe, usa comprador + data + produto.
   if(sale.txn) return 'txn:'+sale.txn;
   let identity = '';
   if(sale.email) identity='mail:'+sale.email;
@@ -1602,11 +1646,17 @@ function getLimpoProductKeys(){
   return keys;
 }
 function isUniqueSourceSale(sale){
+  // Exceção solicitada: assinatura (Offer Payment Mode = SUBSCRIPTION) entra na QTD
+  // sem aplicar a regra do Recurrency Number.
   if(isSubscriptionPaymentMode(sale.paymentMode)) return true;
+
+  // Regra global: Recurrency Number vazio ou cobrança 1 entra na QTD e no CAC.
   if(sale.recurrency !== null && sale.recurrency !== undefined) return isFirstRecurrencyValue(sale.recurrency);
   const clue = rowInstallmentClue(sale.raw);
   if(clue === 'later') return false;
   if(clue === 'first') return true;
+  // A heurística por valor só é aplicada com a Hotmart, onde existe histórico
+  // de faturamento/parcelas por produto suficiente para comparar ticket cheio × parcela.
   if(sale.source==='limpo' && isLikelyInstallmentAmountWithoutRecurrency(sale.raw)) return false;
   return true;
 }
@@ -1619,6 +1669,13 @@ function filterGlobalHotmartSales(f){
   const all=[];
   const limpoProductKeys=getLimpoProductKeys();
   const skippedFullProducts=new Set();
+
+  // REGRA CANÔNICA:
+  // 1) Hotmart é a fonte oficial para produtos que já existem nela.
+  // 2) Hotmart-PHM entra SOMENTE para produtos ausentes na Hotmart
+  //    (ex.: Plano Head de Marketing e produtos futuros que ainda não estiverem na aba limpa).
+  // Isso evita o erro de contar Full Stack pela Hotmart-PHM e comparar com o relatório
+  // da Hotmart/faturamento, gerando 32 vendas quando a Hotmart mostra 27 transações.
   RAW.hotmart.forEach(r=>{
     const sale=sourceSaleFields(r,'limpo');
     if(!salePassFilters(sale,f)) return;
@@ -1638,6 +1695,7 @@ function filterGlobalHotmartSales(f){
     sale.key=sourceSaleKey(sale);
     all.push(sale);
   });
+
   const byKey=new Map();
   all.forEach(sale=>{
     if(!sale.key) return;
@@ -1665,10 +1723,17 @@ function productSalesSummary(rows){
   });
   return Object.values(by).sort((a,b)=>b.vendas-a.vendas || a.produto.localeCompare(b.produto));
 }
-// ═══ VENDAS × FATURAMENTO POR PRODUTO ═══
+
+// ═══ VENDAS (1ª parcela) × FATURAMENTO (todas as parcelas) POR PRODUTO ═══
+// Para cada produto:
+//   • Vendas        = Recurrency vazio/1 + dedupe por compra; SUBSCRIPTION não aplica Recurrency.
+//   • Faturamento   = soma de TODAS as transações do produto (1ª parcela + parcelas seguintes).
+// Mesma regra canônica das demais seções: Hotmart manda; Hotmart-PHM só entra
+// para produtos que ainda NÃO existem na aba limpa.
 function productBreakdown(f){
   const limpoProductKeys = getLimpoProductKeys();
   const byProduct = {};
+
   function bucketFor(name){
     const key = productSourceKey(name);
     if(!byProduct[key]) byProduct[key] = {produto:(name||'').trim()||'(sem produto)', saleKeys:new Set(), faturamento:0, parcelas:0, fontes:new Set()};
@@ -1677,24 +1742,28 @@ function productBreakdown(f){
   function consume(r, source){
     const sale = sourceSaleFields(r, source);
     if(!salePassFilters(sale, f)) return;
+    // PHM só entra para produtos que NÃO existem na Hotmart (mesma regra da QTD global)
     if(source==='full' && limpoProductKeys.has(productSourceKey(sale.product))) return;
     const b = bucketFor(sale.product);
     b.fontes.add(sale.sourceName);
-    b.faturamento += sale.value;
-    if(isUniqueSourceSale(sale)){
+    b.faturamento += sale.value;          // FATURAMENTO: todas as parcelas
+    if(isUniqueSourceSale(sale)){         // VENDAS: Recurrency vazio/1; SUBSCRIPTION é exceção
       sale.key = sourceSaleKey(sale);
       if(sale.key) b.saleKeys.add(sale.key);
     }else{
-      b.parcelas++;
+      b.parcelas++;                       // parcelas seguintes → só no faturamento
     }
   }
+
   RAW.hotmart.forEach(r=>consume(r,'limpo'));
   RAW.hotmartFull.forEach(r=>consume(r,'full'));
+
   return Object.values(byProduct)
     .map(b=>({produto:b.produto, vendas:b.saleKeys.size, faturamento:b.faturamento, parcelas:b.parcelas, fontes:[...b.fontes].join(' + ')}))
     .filter(p=>p.vendas>0 || p.faturamento>0)
     .sort((a,b)=> b.faturamento - a.faturamento || b.vendas - a.vendas || a.produto.localeCompare(b.produto));
 }
+
 function renderProductBreakdown(f){
   const body = document.getElementById('tblProdBreak');
   const foot = document.getElementById('tblProdBreakFoot');
@@ -1715,7 +1784,11 @@ function renderProductBreakdown(f){
   const tV = rows.reduce((s,p)=>s+p.vendas,0);
   const tF = rows.reduce((s,p)=>s+p.faturamento,0);
   if(foot) foot.innerHTML='<tr><td class="cr-name">Total</td><td>'+fmtN(tV)+'</td><td>'+money2(tF)+'</td><td></td></tr>';
+
+  console.log('%c[dotb] Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
+  console.table(rows.map(p=>({Produto:p.produto,'Vendas (Recurrency 1/vazio)':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas seguintes':p.parcelas,'Fonte(s)':p.fontes})));
 }
+
 // ═══ RENDER ═══
 function render(){
   if(!RAW.meta.length && !RAW.hotmart.length){ return; }
@@ -1723,6 +1796,8 @@ function render(){
   const meta=filterMeta(f);
   const hotRevenue=filterHotmartRevenue(f);
   const hotSales=filterGlobalHotmartSales(f);
+
+  // Meta aggregates
   let invest=0,impr=0,clicks=0,pviews=0,checkout=0,purchMeta=0,purchValMeta=0;
   const byDay={};
   meta.forEach(r=>{
@@ -1733,6 +1808,10 @@ function render(){
     const d=parseDate(r[COLS.metaDate]);
     if(d){ (byDay[d]=byDay[d]||{invest:0,bruto:0}).invest+=sp; }
   });
+
+  // Hotmart aggregates
+  // Faturamento: soma todas as parcelas pela data de recebimento/transação.
+  // Vendas: conta apenas vendas únicas pela data da compra original.
   let bruto=0;
   hotRevenue.forEach(r=>{
     const v=parseMoney(r[COLS.hotValue]); bruto+=v;
@@ -1742,6 +1821,8 @@ function render(){
       dayData.bruto+=v;
     }
   });
+  // Vendas por dia também usam a chave de dedupe (Transaction ID se disponível, senão
+  // identidade + data truncada + produto). Mesma lógica do countUniqueSales.
   const daySaleKeys={};
   hotSales.forEach(sale=>{
     const d=sale.date;
@@ -1751,18 +1832,55 @@ function render(){
     const set = (daySaleKeys[d]=daySaleKeys[d]||new Set());
     if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
-  const vendas=countGlobalSales(hotSales);
+  const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart + Hotmart-PHM, sem parcelas
+  console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
   const liquido=bruto-invest;
-  const roas=invest>0?bruto/invest:0;
-  const cac=vendas>0?invest/vendas:0;
+  const roas=invest>0?bruto/invest:0;      // ROAS = faturamento bruto (todas as parcelas) / investimento
+  const cac=vendas>0?invest/vendas:0;      // CAC = investimento / vendas únicas
   const cpm=impr>0?(invest/impr)*1000:0;
   const cpc=clicks>0?invest/clicks:0;
   const cpv=pviews>0?invest/pviews:0;
   const cpck=checkout>0?invest/checkout:0;
-  const cpa=vendas>0?invest/vendas:0;
-  const connRate=clicks>0?pviews/clicks:0;
-  const checkRate=pviews>0?checkout/pviews:0;
-  const convRate=pviews>0?vendas/pviews:0;
+  const cpa=vendas>0?invest/vendas:0;      // CPA = investimento / vendas únicas
+  const connRate=clicks>0?pviews/clicks:0;          // Connect Rate = Visualização de página / Link Clicks
+  const checkRate=pviews>0?checkout/pviews:0;        // Início de checkout / Visualização de página
+  const convRate=pviews>0?vendas/pviews:0; // Taxa de conversão = vendas únicas / visualizações de página
+
+  // Log de diagnóstico por período filtrado
+  console.log(
+    '%c[dotb] RENDER (período: '+f.from+' → '+f.to+'):\n'
+    +'  • Faturamento bruto (todas as parcelas): R$ '+fmtM(bruto)+'\n'
+    +'  • Vendas únicas finais globais (fonte canônica + 1ª parcela + dedupe): '+vendas+'\n'
+    +'  • Linhas de receita (inclui parcelas): '+hotRevenue.length+'\n'
+    +'  • Linhas pré-dedupe globais (fonte canônica + regra Recurrency/Subscription): '+hotSales.length+'\n'
+    +'  • Linhas colapsadas pela chave composta: '+Math.max(0, hotSales.length - vendas),
+    'color:#4dffa7;font-weight:bold'
+  );
+
+  const prodSales=productSalesSummary(hotSales);
+  if(prodSales.length){
+    console.log('%c[dotb] Vendas únicas por produto (regra global; Hotmart + produtos exclusivos Hotmart-PHM):','color:#4dffa7;font-weight:bold');
+    console.table(prodSales.map(p=>({Produto:p.produto,'Vendas únicas':p.vendas,'Fonte(s)':[...p.fontes].join(' + ')})));
+  }
+
+  // Detalhe extra: lista as linhas que foram para a contagem de vendas únicas
+  if(hotSales.length && hotSales.length < 40){
+    console.log('%c[dotb] Linhas usadas na contagem de vendas únicas (só 1ª parcela; chave dedupe na última coluna):','color:#4dffa7');
+    console.table(hotSales.map(s=>({
+      'Fonte': s.sourceName,
+      'Buyer Name': s.buyer || '(vazio/não detectado)',
+      'Transaction': s.txn || '(vazio/não detectado)',
+      'Data venda': s.date || '',
+      'Email': s.email || '',
+      'Produto': s.product || '',
+      'Status': s.status || '',
+      'Recurrency': (s.recurrency===null || s.recurrency===undefined || String(s.recurrency).trim()==='') ? '(vazio/sem recorrência)' : s.recurrency,
+      'Offer Payment Mode': s.paymentMode || '(vazio/não detectado)',
+      'Valor': s.value,
+      'Chave dedupe': s.key
+    })));
+  }
+
   // KPIs
   setText('kVendas',fmtN(vendas));
   setText('kBruto',fmtM(bruto));
@@ -1771,6 +1889,7 @@ function render(){
   document.getElementById('kLiquidoSub').innerHTML = liquido>=0 ? '<span class="badge badge-green">▲ lucro</span>' : '<span class="badge badge-red">▼ prejuízo</span>';
   setText('kROAS',fmtR(roas));
   setText('kCAC',fmtM(cac));
+
   // Funil Meta
   setText('fImpressoes',fmtN(impr));
   setText('fCliques',fmtN(clicks));
@@ -1785,17 +1904,20 @@ function render(){
   setText('fConnRate',fmtP(connRate));
   setText('fCheckRate',fmtP(checkRate));
   setText('fConvRate',fmtP(convRate));
+
   // Chart
   renderChart(byDay);
-  // Table Criativos — Meta Ads × Hotmart limpo (SCK)
-  renderTable(meta,f);
-  // Table Públicos — Meta Adset × Hotmart limpo (SEGMENTAÇÃO)
-  renderAudience(meta,f);
-  // Vendas × Faturamento por produto
+
+  // Table — criativos Meta Ads × vendas do próprio Meta Ads (sem cruzar com Hotmart/SCK)
+  renderTable(meta);
+
+  // Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto
   renderProductBreakdown(f);
+
   // Funil PHM
   renderPHM();
 }
+
 // ═══ CHART ═══
 function renderChart(byDay){
   const days=Object.keys(byDay).sort();
@@ -1822,44 +1944,50 @@ function renderChart(byDay){
     }
   });
 }
-// ═══ TABLE CRIATIVOS — Meta Ads × Hotmart limpo (SCK) ═══
-function renderTable(meta,f){
-  const hotIdx=buildHotmartCrossIndex(f, hotCreativeKey);
+
+// ═══ TABLE — criativos Meta Ads × vendas do próprio Meta Ads ═══
+// A tabela abaixo NÃO cruza com Hotmart/SCK. A coluna Vendas vem direto do Meta Ads
+// pela coluna COLS.metaPurch, travada como "Action Omni Purchase".
+function renderTable(meta){
+  // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
   const byCode={};
   meta.forEach(r=>{
     const fullName=(r[COLS.metaAd]||r[COLS.metaCamp]||'Sem nome');
-    const code=creativeKeyFromAdName(fullName)||fullName.toUpperCase();
-    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,permalink:'',thumb:''};
+    const code=extractCode(fullName)||fullName.toUpperCase();
+    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendas:0,permalink:'',thumb:''};
     a.names.add(fullName);
     a.invest+=parseMoney(r[COLS.metaSpend]);
     a.impr+=num(r[COLS.metaImpr]);
-    a.clicks+=num(r[COLS.metaClick]);
+    a.clicks+=num(r[COLS.metaClick]);   // CLIQUES = Link Clicks
+    a.vendas+=num(r[COLS.metaPurch]);   // VENDAS = Action Omni Purchase do Meta Ads
     if(!a.permalink){ const pl=String(r[COLS.metaPermalink]||'').trim(); if(pl) a.permalink=pl; }
     if(!a.thumb){ const th=String(r[COLS.metaThumb]||'').trim(); if(th) a.thumb=th; }
   });
-  TABLE_ROWS=Object.values(byCode).map(m=>{
-    const ctr=m.impr>0?m.clicks/m.impr:0;
-    const cpc=m.clicks>0?m.invest/m.clicks:0;
-    const h=hotIdx[m.code]||{vendas:0,parceladas:0,receita:0};
-    const vendas=h.vendas, parceladas=h.parceladas, receita=h.receita;
-    const roas=m.invest>0?receita/m.invest:0;
-    const cac=vendas>0?m.invest/vendas:0;
+
+  console.log('%c[dotb] Tabela Criativos vs KPIs usando vendas do Meta Ads (sem Hotmart/SCK).','color:#89cc72;font-weight:bold');
+  console.log('%c[dotb] Coluna de vendas Meta detectada:','color:#89cc72', COLS.metaPurch||'(não detectada)');
+
+  const rows=Object.values(byCode);
+  // Monta as linhas com todas as métricas já calculadas
+  TABLE_ROWS=rows.map(m=>{
+    const ctr=m.impr>0?m.clicks/m.impr:0;          // CTR = Link Clicks / Impressões
+    const cpc=m.clicks>0?m.invest/m.clicks:0;       // CPC = Investimento / Link Clicks
     return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
-            ctr, cpc, vendas, parceladas, receita, roas, cac, permalink:m.permalink, thumb:m.thumb};
+            ctr, cpc, vendas:m.vendas, permalink:m.permalink, thumb:m.thumb};
   });
-  let tI=0,tImp=0,tC=0,tV=0,tP=0,tR=0;
-  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas;tP+=m.parceladas;tR+=m.receita; });
-  TABLE_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV,parceladas:tP,receita:tR,roas:tI>0?tR/tI:0,cac:tV>0?tI/tV:0};
-  console.log('%c[dotb] Criativos × Hotmart (SCK): '+TABLE_ROWS.length+' criativos | vendas cruzadas: '+tV+' | parceladas: '+tP+' | receita: '+money2(tR),'color:#89cc72;font-weight:bold');
-  const matched=TABLE_ROWS.filter(r=>r.vendas>0).length;
-  console.log('[dotb] Criativos com venda cruzada na Hotmart:',matched,'de',TABLE_ROWS.length,'| chaves SCK Hotmart:',Object.keys(hotIdx));
+  // Totais (independentes da ordenação)
+  let tI=0,tImp=0,tC=0,tV=0;
+  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas; });
+  TABLE_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV};
   paintTable();
 }
+
+// Ordena e desenha a tabela conforme SORT
 function paintTable(){
   const body=document.getElementById('tblCreativos');
   const foot=document.getElementById('tblFoot');
   if(!TABLE_ROWS.length){
-    body.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
+    body.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
     foot.innerHTML=''; updateSortIndicators(); return;
   }
   const {key,dir}=SORT, mul=dir==='asc'?1:-1;
@@ -1883,17 +2011,15 @@ function paintTable(){
       '<td>'+fmtP(m.ctr)+'</td>'+
       '<td>'+money2(m.cpc)+'</td>'+
       '<td>'+fmtN(m.vendas)+'</td>'+
-      '<td>'+parcCell(m.parceladas)+'</td>'+
-      '<td>'+money0(m.receita)+'</td>'+
-      '<td>'+roasBadge(m.roas)+'</td>'+
-      '<td>'+money2(m.cac)+'</td>'+
       '<td>'+linkCell+'</td>'+
     '</tr>';
   }).join('');
   const t=TABLE_TOTALS;
-  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td>'+parcCell(t.parceladas)+'</td><td>'+money0(t.receita)+'</td><td>'+roasBadge(t.roas)+'</td><td>'+money2(t.cac)+'</td><td></td></tr>';
+  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td></td></tr>';
   updateSortIndicators();
 }
+
+// Atualiza as setinhas ▲▼ nos cabeçalhos
 function updateSortIndicators(){
   document.querySelectorAll('#table-sec th.sortable').forEach(th=>{
     const active=th.dataset.sort===SORT.key;
@@ -1902,103 +2028,24 @@ function updateSortIndicators(){
     if(car) car.textContent = active ? (SORT.dir==='asc'?'▲':'▼') : '';
   });
 }
-// ═══ TABLE PÚBLICOS — Meta Adset × Hotmart limpo (SEGMENTAÇÃO) ═══
-function renderAudience(meta,f){
-  const body=document.getElementById('tblAudience');
-  const foot=document.getElementById('tblAudienceFoot');
-  if(!body) return;
-  if(!COLS.metaAdset){
-    AUD_ROWS=[]; AUD_TOTALS=null;
-    body.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--gray-2);padding:32px;">Coluna de Adset/Conjunto do Meta não detectada. Ajuste COL_OVERRIDE.metaAdset.</td></tr>';
-    foot.innerHTML=''; updateAudSortIndicators(); return;
-  }
-  const hotIdx=buildHotmartCrossIndex(f, hotSegmentKey);
-  const byKey={};
-  meta.forEach(r=>{
-    const adset=String(r[COLS.metaAdset]||'').trim();
-    const name=adset||'(sem conjunto)';
-    const code=segmentKeyFromAdset(name)||name.toUpperCase();
-    const a=byKey[code]=byKey[code]||{code,names:new Set(),invest:0,impr:0,clicks:0};
-    a.names.add(name);
-    a.invest+=parseMoney(r[COLS.metaSpend]);
-    a.impr+=num(r[COLS.metaImpr]);
-    a.clicks+=num(r[COLS.metaClick]);
-  });
-  AUD_ROWS=Object.values(byKey).map(m=>{
-    const ctr=m.impr>0?m.clicks/m.impr:0;
-    const cpc=m.clicks>0?m.invest/m.clicks:0;
-    const h=hotIdx[m.code]||{vendas:0,parceladas:0,receita:0};
-    const vendas=h.vendas, parceladas=h.parceladas, receita=h.receita;
-    const roas=m.invest>0?receita/m.invest:0;
-    const cac=vendas>0?m.invest/vendas:0;
-    return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
-            ctr, cpc, vendas, parceladas, receita, roas, cac};
-  });
-  let tI=0,tImp=0,tC=0,tV=0,tP=0,tR=0;
-  AUD_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas;tP+=m.parceladas;tR+=m.receita; });
-  AUD_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV,parceladas:tP,receita:tR,roas:tI>0?tR/tI:0,cac:tV>0?tI/tV:0};
-  console.log('%c[dotb] Públicos × Hotmart (SEGMENTAÇÃO): '+AUD_ROWS.length+' conjuntos | vendas cruzadas: '+tV+' | parceladas: '+tP+' | receita: '+money2(tR),'color:#89cc72;font-weight:bold');
-  console.log('[dotb] Chaves SEGMENTAÇÃO Hotmart:',Object.keys(hotIdx));
-  paintAudience();
-}
-function paintAudience(){
-  const body=document.getElementById('tblAudience');
-  const foot=document.getElementById('tblAudienceFoot');
-  if(!body) return;
-  if(!AUD_ROWS.length){
-    if(COLS.metaAdset){
-      body.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
-      foot.innerHTML='';
-    }
-    updateAudSortIndicators(); return;
-  }
-  const {key,dir}=AUD_SORT, mul=dir==='asc'?1:-1;
-  const sorted=[...AUD_ROWS].sort((a,b)=>{
-    if(key==='code'||key==='name'){ return mul*String(a[key]).localeCompare(String(b[key]),'pt-BR'); }
-    let x=a[key], y=b[key];
-    x=(x===null||x===undefined)?-Infinity:x;
-    y=(y===null||y===undefined)?-Infinity:y;
-    return mul*(x-y);
-  });
-  body.innerHTML=sorted.map(m=>{
-    const label='<strong style="color:var(--off)">'+m.name+'</strong>';
-    return '<tr>'+
-      '<td class="cr-name" title="'+escAttr(m.name)+'">'+label+'</td>'+
-      '<td>'+money0(m.invest)+'</td>'+
-      '<td>'+fmtN(m.impr)+'</td>'+
-      '<td>'+fmtN(m.clicks)+'</td>'+
-      '<td>'+fmtP(m.ctr)+'</td>'+
-      '<td>'+money2(m.cpc)+'</td>'+
-      '<td>'+fmtN(m.vendas)+'</td>'+
-      '<td>'+parcCell(m.parceladas)+'</td>'+
-      '<td>'+money0(m.receita)+'</td>'+
-      '<td>'+roasBadge(m.roas)+'</td>'+
-      '<td>'+money2(m.cac)+'</td>'+
-    '</tr>';
-  }).join('');
-  const t=AUD_TOTALS;
-  foot.innerHTML='<tr><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td>'+parcCell(t.parceladas)+'</td><td>'+money0(t.receita)+'</td><td>'+roasBadge(t.roas)+'</td><td>'+money2(t.cac)+'</td></tr>';
-  updateAudSortIndicators();
-}
-function updateAudSortIndicators(){
-  document.querySelectorAll('#audience-sec th.sortable').forEach(th=>{
-    const active=th.dataset.sort===AUD_SORT.key;
-    th.classList.toggle('sort-active',active);
-    const car=th.querySelector('.sort-caret');
-    if(car) car.textContent = active ? (AUD_SORT.dir==='asc'?'▲':'▼') : '';
-  });
-}
+
 // ═══ FUNIL PHM ═══
 function renderPHM(){
   const wrap=document.getElementById('phmFunnel');
   if(!RAW.phm.length){ wrap.innerHTML='<div class="empty"><div class="big">∅</div>Sem dados de Lead PHM</div>'; return; }
   if(!RAW.hotmartFull.length){ wrap.innerHTML='<div class="empty"><div class="big">∅</div>Sem dados da Hotmart-PHM</div>'; return; }
+
   const norm = s => String(s||'').toLowerCase().trim();
   const matchKw = (name,kws) => kws.some(k=>name.includes(k));
+
+  // Fonte do cruzamento PHM: aba Hotmart específica (gid 721086669), conforme solicitado.
   const src = RAW.hotmartFull;
   const cEmail  = COLS.hotFullEmail;
   const cProd   = COLS.hotFullProd;
   const cStatus = COLS.hotFullStatus;
+
+  // 1) Indexa compradores da Hotmart-PHM SOMENTE com status approved/completed.
+  // Cruzamento feito exclusivamente por e-mail: Sales History Buyer Email.
   const phmEmails=new Set();
   const fullEmails=new Set();
   const allProds=new Set();
@@ -2007,6 +2054,7 @@ function renderPHM(){
     const sale=sourceSaleFields(r,'full');
     const st=sale.status;
     if(!['approved','completed'].includes(st)) return;
+    // No funil, também respeitamos a regra global de Recurrency vazio/1, com exceção para SUBSCRIPTION.
     if(!isUniqueSourceSale(sale)) return;
     buyersApproved++;
     const email=norm(sale.email || (cEmail ? r[cEmail] : ''));
@@ -2016,6 +2064,8 @@ function renderPHM(){
     if(matchKw(prod,PHM_PRODUCTS.phm))  phmEmails.add(email);
     if(matchKw(prod,PHM_PRODUCTS.full)) fullEmails.add(email);
   });
+
+  // 2) Base do funil: leads PHM únicos por e-mail.
   const leadEmails=new Set();
   let leadRows=0, leadRowsWithEmail=0;
   RAW.phm.forEach(r=>{
@@ -2023,6 +2073,10 @@ function renderPHM(){
     const email=norm(r[COLS.phmEmail]);
     if(email){ leadRowsWithEmail++; leadEmails.add(email); }
   });
+
+  // 3) Fluxo sequencial:
+  // Lead PHM → comprou Plano Head de Marketing → comprou Full Stack Marketing.
+  // O último estágio conta apenas quem era lead PHM E também comprou PHM E Full Stack.
   let boughtPHM=0, boughtFullAfterPHM=0;
   leadEmails.forEach(email=>{
     const hasPHM=phmEmails.has(email);
@@ -2030,10 +2084,24 @@ function renderPHM(){
     if(hasPHM) boughtPHM++;
     if(hasPHM && hasFull) boughtFullAfterPHM++;
   });
+
   const leads=leadEmails.size;
   const prodList=[...allProds];
+
+  // ── Diagnóstico ──
   console.log('%c[dotb] ── Funil PHM ──','color:#89cc72;font-weight:bold');
-  console.log('[dotb] Leads únicos por e-mail:',leads,'| PHM:',phmEmails.size,'| Full:',fullEmails.size,'| PHM→Full:',boughtFullAfterPHM);
+  console.log('[dotb] Fonte de compras: Hotmart-PHM (gid 721086669)');
+  console.log('[dotb] Colunas usadas → lead email:',COLS.phmEmail,'| buyer email:',cEmail,'| produto:',cProd,'| status:',cStatus);
+  console.log('[dotb] Linhas Lead PHM:',leadRows,'| linhas com e-mail:',leadRowsWithEmail,'| leads únicos por e-mail:',leads);
+  console.log('[dotb] Linhas Hotmart approved/completed e 1ª parcela:',buyersApproved);
+  console.log('[dotb] Compradores Plano Head de Marketing (e-mail único):',phmEmails.size,'| Full Stack Marketing (e-mail único):',fullEmails.size);
+  console.log('[dotb] Leads que compraram PHM:',boughtPHM,'| Leads que compraram PHM + Full Stack:',boughtFullAfterPHM);
+  console.log('[dotb] Produtos encontrados na Hotmart-PHM:',prodList);
+  if(!cEmail || !cProd || !cStatus) console.warn('[dotb] ⚠ Verifique os cabeçalhos da Hotmart-PHM. Esperado: Sales History Buyer Email, Sales History Product Name e Sales History Transaction Status.');
+  if(buyersApproved===0) console.warn('[dotb] ⚠ Nenhuma compra approved/completed indexada na Hotmart-PHM.');
+  if(leads===0) console.warn('[dotb] ⚠ Nenhum lead PHM com e-mail — verifique COLS.phmEmail.');
+
+  // ── Render ──
   const okPHM  = matchKw([...allProds].join(' || '),PHM_PRODUCTS.phm);
   const okFull = matchKw([...allProds].join(' || '),PHM_PRODUCTS.full);
   const steps=[
@@ -2053,6 +2121,7 @@ function renderPHM(){
     '</div>'+arrow;
   }).join('');
 }
+
 // ═══ LOGIN ═══
 function initLogin(){
   const form=document.getElementById('loginForm');
@@ -2083,6 +2152,7 @@ function initLogin(){
     if(user) user.focus();
   });
 }
+
 // ═══ EVENTS ═══
 function initEvents(){
   document.getElementById('btnApply').addEventListener('click',render);
@@ -2105,24 +2175,17 @@ function initEvents(){
     const el=document.getElementById(b.dataset.target); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); b.classList.add('active');
   }));
-  // Ordenação da tabela de criativos
+
+  // Ordenação da tabela de criativos (clicar no cabeçalho)
   document.querySelectorAll('#table-sec th.sortable').forEach(th=>{
     th.addEventListener('click',()=>{
       const key=th.dataset.sort;
       if(SORT.key===key){ SORT.dir = SORT.dir==='asc'?'desc':'asc'; }
-      else { SORT.key=key; SORT.dir=(key==='code'||key==='name')?'asc':'desc'; }
+      else { SORT.key=key; SORT.dir=(key==='code'||key==='name')?'asc':'desc'; } // novo: texto começa A→Z, número maior→menor
       paintTable();
     });
   });
-  // Ordenação da tabela de públicos
-  document.querySelectorAll('#audience-sec th.sortable').forEach(th=>{
-    th.addEventListener('click',()=>{
-      const key=th.dataset.sort;
-      if(AUD_SORT.key===key){ AUD_SORT.dir = AUD_SORT.dir==='asc'?'desc':'asc'; }
-      else { AUD_SORT.key=key; AUD_SORT.dir=(key==='code'||key==='name')?'asc':'desc'; }
-      paintAudience();
-    });
-  });
+
   // Tela cheia do gráfico
   const chartCard=document.getElementById('chartCard');
   const fsBtn=document.getElementById('chartFsBtn');
@@ -2143,8 +2206,10 @@ function initEvents(){
     document.addEventListener('fullscreenchange',onFsChange);
     document.addEventListener('webkitfullscreenchange',onFsChange);
   }
+
   setText('tsNow',new Date().toLocaleString('pt-BR'));
 }
+
 // ═══ BOOT ═══
 document.addEventListener('DOMContentLoaded',async()=>{
   initLogin();
