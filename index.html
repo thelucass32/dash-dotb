@@ -501,7 +501,7 @@ body:not(.auth-pending) .login-screen{display:none;}
     </div>
     <!-- TABLE PÚBLICOS -->
     <div class="section" id="audience-sec">
-      <div class="section-head"><h2 class="section-title">Públicos <em>vs KPIs</em></h2><span class="section-tag">Meta Adset Name × Hotmart limpo (SEGMENTAÇÃO) · Receita valor cheio</span></div>
+      <div class="section-head"><h2 class="section-title">Públicos <em>vs KPIs</em></h2><span class="section-tag">Meta Adset Name × Hotmart SCK (segmentação) · Receita valor cheio</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
@@ -1177,13 +1177,11 @@ function detectColumns(){
   console.log('%c[dotb] Cruzamento criativos/públicos:','color:#89cc72;font-weight:bold');
   console.log('  • Meta Ad name:   ', COLS.metaAd || '(não detectada)');
   console.log('  • Meta Adset:     ', COLS.metaAdset || '(não detectada)');
-  console.log('  • Hotmart SCK:    ', COLS.hotCreative || '(não detectada)');
-  console.log('  • Hotmart SEGMENTAÇÃO:', COLS.hotSegmentacao || '(não detectada)');
+  console.log('  • Hotmart SCK (criativo+segmentação):', COLS.hotCreative || '(não detectada)');
   console.log('  • Hotmart preço cheio:', COLS.hotPrice || '(não detectada — Receita usará o valor da transação)');
   console.log('  • Hotmart nº parcelas:', COLS.hotInstallments || '(não detectada — parcelada por modo de pagamento/valor)');
   if(!COLS.metaAdset) console.warn('[dotb] ⚠ Coluna de Adset/Conjunto do Meta não detectada. A tabela Públicos ficará vazia. Ajuste COL_OVERRIDE.metaAdset com o nome exato do cabeçalho.');
-  if(!COLS.hotSegmentacao) console.warn('[dotb] ⚠ Coluna SEGMENTAÇÃO da Hotmart não detectada. A tabela Públicos não terá vendas cruzadas. Ajuste COL_OVERRIDE.hotSegmentacao.');
-  if(!COLS.hotCreative) console.warn('[dotb] ⚠ Coluna de criativo (SCK) da Hotmart não detectada. A tabela Criativos não terá vendas cruzadas. Ajuste COL_OVERRIDE.hotCreative.');
+  if(!COLS.hotCreative) console.warn('[dotb] ⚠ Coluna SCK da Hotmart não detectada. As tabelas Criativos e Públicos não terão vendas cruzadas. Ajuste COL_OVERRIDE.hotCreative (Sales History Tracking Source SCK).');
   if(!COLS.hotPrice) console.warn('[dotb] ⚠ Coluna de preço cheio não detectada. Nas parceladas a Receita usará o valor da transação (parcela). Para "valor cheio", ajuste COL_OVERRIDE.hotPrice (ex.: Sales History Price).');
   console.log('[dotb] Cabeçalhos Meta:', mh);
   console.log('[dotb] Cabeçalhos Hotmart (limpo):', hh);
@@ -1463,8 +1461,59 @@ function buildHotmartCrossIndex(f, keyFn){
   });
   return map;
 }
-function hotCreativeKey(r){ return COLS.hotCreative ? extractCode(r[COLS.hotCreative]) : ''; }
-function hotSegmentKey(r){ return COLS.hotSegmentacao ? extractCode(r[COLS.hotSegmentacao]) : ''; }
+// ─── SCK carrega TUDO (padrão UTM separado por hífen) ────────────────────────
+// Ex.: dotb-fsm-vend-igfb-feedst-advantage-cpc-frio-ad28
+//   0 marca | 1 PRODUTO | 2 objetivo | 3 canal | 4 posição |
+//   -4 SEGMENTAÇÃO (advantage) | -3 tipo (cpc/org) | -2 temperatura (frio/quente) | -1 CRIATIVO (ad28)
+// Criativo = produto + número do anúncio → chave "FSM_AD28" (casa com Ad Name "AD28_FSM_...").
+// Segmentação = campo -4 normalizado → casa com Adset Name ("advantage", "mix_envolvimento_365d").
+// Vendas de Google/orgânico não entram na atribuição de criativo/público do Meta.
+const NON_META_SCK = /google|tiktok|youtube|linkedin|kwai|taboola/i;
+function parseSCK(sck){
+  const raw=String(sck||'').trim();
+  if(!raw || raw.startsWith('[field')) return null;
+  const parts=raw.split('-').map(s=>s.trim()).filter(Boolean);
+  if(parts.length<2) return null; // "fsm", "HOTMART_SITE" etc. → tráfego direto, sem padrão de anúncio
+  const adMatch=raw.match(/ad(\d+)/i);
+  return {
+    raw, parts,
+    product: parts[1]||'',
+    seg: parts.length>=4 ? parts[parts.length-4] : '',
+    adNum: adMatch ? parseInt(adMatch[1],10) : null,
+    nonMeta: NON_META_SCK.test(raw)
+  };
+}
+function creativeKeyFromSCK(sck){
+  const p=parseSCK(sck);
+  if(!p || p.nonMeta || p.adNum===null || !p.product) return '';
+  return p.product.toUpperCase()+'_AD'+p.adNum;
+}
+function segmentKeyFromSCK(sck){
+  const p=parseSCK(sck);
+  if(!p || p.nonMeta) return '';
+  const seg=normCompact(p.seg);
+  if(!seg || seg==='x') return '';
+  return seg;
+}
+// Chave do criativo a partir do Ad Name do Meta: "AD28_FSM_MESADIRETORIA" → "FSM_AD28".
+function creativeKeyFromAdName(adName){
+  const raw=String(adName||'').trim();
+  if(!raw) return '';
+  const tokens=raw.split(/[_\-\s.]+/).filter(Boolean);
+  const adIdx=tokens.findIndex(t=>/^ad\d+$/i.test(t));
+  if(adIdx>=0){
+    const num=parseInt(tokens[adIdx].replace(/\D/g,''),10);
+    const product=(tokens[adIdx+1]||tokens[1]||'');
+    return product.toUpperCase()+'_AD'+num;
+  }
+  const m=raw.match(/ad(\d+)/i);
+  if(!m) return '';
+  return ((tokens[1]||tokens[0]||'').toUpperCase())+'_AD'+parseInt(m[1],10);
+}
+// Chave do público a partir do Adset Name do Meta ("Advantage"/"ADVANTAGE" → "advantage").
+function segmentKeyFromAdset(adset){ return normCompact(adset)||''; }
+function hotCreativeKey(r){ return COLS.hotCreative ? creativeKeyFromSCK(r[COLS.hotCreative]) : ''; }
+function hotSegmentKey(r){ return COLS.hotCreative ? segmentKeyFromSCK(r[COLS.hotCreative]) : ''; }
 // ═══ QTD GLOBAL DE VENDAS ÚNICAS ═══
 function getFirstExistingValue(r, cols){
   for(const c of cols){
@@ -1779,7 +1828,7 @@ function renderTable(meta,f){
   const byCode={};
   meta.forEach(r=>{
     const fullName=(r[COLS.metaAd]||r[COLS.metaCamp]||'Sem nome');
-    const code=extractCode(fullName)||fullName.toUpperCase();
+    const code=creativeKeyFromAdName(fullName)||fullName.toUpperCase();
     const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,permalink:'',thumb:''};
     a.names.add(fullName);
     a.invest+=parseMoney(r[COLS.metaSpend]);
@@ -1868,7 +1917,7 @@ function renderAudience(meta,f){
   meta.forEach(r=>{
     const adset=String(r[COLS.metaAdset]||'').trim();
     const name=adset||'(sem conjunto)';
-    const code=extractCode(name)||name.toUpperCase();
+    const code=segmentKeyFromAdset(name)||name.toUpperCase();
     const a=byKey[code]=byKey[code]||{code,names:new Set(),invest:0,impr:0,clicks:0};
     a.names.add(name);
     a.invest+=parseMoney(r[COLS.metaSpend]);
@@ -1912,7 +1961,7 @@ function paintAudience(){
     return mul*(x-y);
   });
   body.innerHTML=sorted.map(m=>{
-    const label='<strong style="color:var(--off)">'+m.code+'</strong> <span style="color:var(--gray-2);font-size:10px">'+(m.name!==m.code?m.name:'')+'</span>';
+    const label='<strong style="color:var(--off)">'+m.name+'</strong>';
     return '<tr>'+
       '<td class="cr-name" title="'+escAttr(m.name)+'">'+label+'</td>'+
       '<td>'+money0(m.invest)+'</td>'+
