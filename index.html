@@ -566,9 +566,9 @@ body:not(.auth-pending) .login-screen{display:none;}
 const SHEET_ID = '';
 const URLS = {
   meta:        'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=1463017033&single=true&output=csv',
-  // Fonte oficial para KPIs, gráfico, produtos e tabela: aba Hotmart (gid 721086669)
-  // Esta aba contém as colunas Sales History Recurrency Number e Sales History Offer Payment Mode.
-  hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv',
+  // Fonte oficial para KPIs, produtos e cruzamento por criativo: aba Hotmart Limpo (gid 565168335).
+  // Esta aba contém SCK/Tracking Source, produto, status, transação e regra de recorrência.
+  hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=565168335&single=true&output=csv',
   phm:         'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=2130889671&single=true&output=csv',
   // Mesma aba Hotmart também alimenta o Funil PHM, evitando divergência de cabeçalhos.
   hotmartFull: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv'
@@ -1036,12 +1036,21 @@ function isUniqueHotmartSale(r){
   return true;
 }
 function normPhone(p){ if(!p) return ''; return String(p).replace(/\D/g,'').slice(-9); }
-// Extrai o código do criativo: "B04_PHM_FAZTUDO" → "B04" ; "B04" → "B04"
+// Extrai o código do criativo em qualquer posição do texto.
+// Exemplos aceitos: "AD43_FULL_STACK", "full-stack-ad43", "sck=AD43", "ID 145".
 function extractCode(s){
   if(!s) return '';
-  const str = String(s).trim();
-  if(str.startsWith('[field')) return ''; // ignora campos não preenchidos da Hotmart
-  return str.split(/[_\-\s.|/]+/)[0].toUpperCase();
+  const str=String(s).trim();
+  if(/^\[field/i.test(str)) return ''; // campo dinâmico não preenchido da Hotmart
+  const upper=normText(str).toUpperCase();
+  // Prioriza códigos com letras + números, removendo separadores internos: AD43, ID145, B04.
+  const matches=[...upper.matchAll(/(?:^|[^A-Z0-9])([A-Z]{1,6})[\s_-]*(\d{1,5})(?=$|[^A-Z0-9])/g)];
+  if(matches.length){
+    // Evita interpretar parâmetros/anos genéricos quando há códigos típicos de criativo.
+    const preferred=matches.find(m=>/^(AD|ID|CR|CRI|B|C|V|IMG|VID)$/i.test(m[1])) || matches[0];
+    return (preferred[1]+preferred[2]).toUpperCase();
+  }
+  return upper.split(/[_\-\s.|/?=&]+/).filter(Boolean)[0]||'';
 }
 function colFind(headers,patterns){
   if(!headers||!headers.length) return null;
@@ -1112,7 +1121,7 @@ function detectColumns(){
   COLS.hotTxnId    = colFind(hh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
   // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
-  COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
+  COLS.hotCreative = colFind(hh,[/^sales history tracking source sck$/,/sales history tracking source sck/,/tracking.?source.*sck/,/tracking.?source/,/^sck$/,/criativo/,/creative/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
     /sales.?history.*recurrency.*number/,
@@ -1343,10 +1352,10 @@ async function loadData(){
     const p  = await fetchCSV(URLS.phm);
     const hf = await fetchCSV(URLS.hotmartFull);
     RAW.meta=cleanRows(csvToObjects(m),'Meta');
-    RAW.hotmart=cleanRows(csvToObjects(h),'Hotmart');
+    RAW.hotmart=cleanRows(csvToObjects(h),'Hotmart Limpo');
     RAW.phm=cleanRows(csvToObjects(p),'PHM');
     RAW.hotmartFull=cleanRows(csvToObjects(hf),'Hotmart-PHM');
-    console.log('%c[dotb] Fonte Hotmart KPIs/tabela: Hotmart (gid 565168335)','color:#89cc72;font-weight:bold');
+    console.log('%c[dotb] Fonte Hotmart KPIs/tabela/cruzamento: Hotmart Limpo (gid 565168335)','color:#89cc72;font-weight:bold');
     console.log('%c[dotb] Fonte Hotmart Funil PHM: Hotmart-PHM (gid 721086669)','color:#89cc72;font-weight:bold');
     detectColumns();
     setStatus('ok','Ao vivo · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
@@ -2082,6 +2091,7 @@ function renderTable(meta,ticketMedio,f){
   if(isCrossed){
     console.log('[dotb] Coluna Hotmart usada no cruzamento:',COLS.hotCreative||'(não detectada)');
     console.log('[dotb] Vendas Hotmart com código:',crossed.total,'| correspondidas com Meta filtrada:',crossedMatched,'| sem correspondência:',crossedUnmatched,'| sem código:',crossed.withoutCreative,'| duplicatas removidas:',crossed.duplicates);
+    if(crossed.byCode.AD43) console.log('[dotb] Diagnóstico AD43:',{vendas:crossed.byCode.AD43.vendas,sck:[...crossed.byCode.AD43.rawNames]});
   }
   console.log('%c[dotb] Ticket médio ponderado aplicado:','color:#4dffa7', money2(avgTicket));
   const rows=Object.values(byCode);
