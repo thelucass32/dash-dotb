@@ -177,6 +177,21 @@ canvas{width:100%!important;}
 .tbl th.sortable:hover{color:var(--off);}
 .tbl th.sort-active{color:var(--accent);}
 .sort-caret{display:inline-block;font-size:8px;margin-left:2px;color:var(--accent);}
+/* SWITCH — fonte das vendas na tabela de criativos */
+.creative-head-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;}
+.sales-source-switch{display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--bg-1);border:1px solid var(--line);border-radius:12px;}
+.sales-source-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-2);font-weight:500;transition:color .18s;white-space:nowrap;}
+.sales-source-label.active{color:var(--accent);}
+.sales-toggle{position:relative;display:inline-flex;width:42px;height:23px;flex-shrink:0;}
+.sales-toggle input{position:absolute;opacity:0;width:0;height:0;}
+.sales-toggle-track{position:absolute;inset:0;border-radius:999px;background:var(--bg-3);border:1px solid var(--line);cursor:pointer;transition:background .2s,border-color .2s,opacity .2s;}
+.sales-toggle-track::after{content:'';position:absolute;width:17px;height:17px;left:2px;top:2px;border-radius:50%;background:var(--off);box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .2s,background .2s;}
+.sales-toggle input:checked + .sales-toggle-track{background:var(--accent-dim);border-color:var(--accent);}
+.sales-toggle input:checked + .sales-toggle-track::after{transform:translateX(19px);background:var(--accent);}
+.sales-toggle input:focus-visible + .sales-toggle-track{outline:2px solid var(--accent);outline-offset:2px;}
+.sales-toggle input:disabled + .sales-toggle-track{cursor:not-allowed;opacity:.35;}
+.sales-source-switch.disabled{opacity:.55;}
+@media(max-width:700px){.creative-head-controls{justify-content:flex-start;width:100%;}.sales-source-switch{width:100%;justify-content:center;}}
 /* Tabela "Vendas por produto" — primeira coluna alinhada à esquerda */
 #prod-breakdown-sec .tbl{min-width:680px;}
 #prod-breakdown-sec .tbl th:first-child,#prod-breakdown-sec .tbl td:first-child{text-align:left;padding-left:16px;}
@@ -476,7 +491,20 @@ body:not(.auth-pending) .login-screen{display:none;}
     </div>
     <!-- TABLE -->
     <div class="section" id="table-sec">
-      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag" id="creativeTableTag">Meta Ads · receita estimada pelo ticket médio Hotmart</span></div>
+      <div class="section-head">
+        <h2 class="section-title">Criativos <em>vs KPIs</em></h2>
+        <div class="creative-head-controls">
+          <span class="section-tag" id="creativeTableTag">Meta Ads · receita estimada pelo ticket médio Hotmart</span>
+          <div class="sales-source-switch" id="creativeSalesSwitchWrap" title="Alternar a origem das vendas da tabela">
+            <span class="sales-source-label active" id="salesModeAttributedLabel">Atribuídas</span>
+            <label class="sales-toggle" aria-label="Alternar entre vendas atribuídas e vendas cruzadas">
+              <input type="checkbox" id="creativeSalesSwitch">
+              <span class="sales-toggle-track"></span>
+            </label>
+            <span class="sales-source-label" id="salesModeCrossedLabel">Cruzadas</span>
+          </div>
+        </div>
+      </div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
@@ -487,10 +515,10 @@ body:not(.auth-pending) .login-screen{display:none;}
             <th class="sortable" data-sort="clicks">Cliques <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="receita" title="Vendas Meta × ticket médio ponderado da Hotmart">Receita <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="vendas" id="creativeSalesHeader">Vendas <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="receita" id="creativeRevenueHeader" title="Vendas × ticket médio ponderado da Hotmart">Receita <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="roas" title="Receita estimada ÷ investimento">ROAS <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="conv" title="Vendas Meta ÷ cliques no link">Tx Conversão <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="conv" id="creativeConvHeader" title="Vendas ÷ cliques no link">Tx Conversão <span class="sort-caret"></span></th>
             <th>Links</th>
           </tr></thead>
           <tbody id="tblCreativos"></tbody>
@@ -553,6 +581,7 @@ let chartInstance=null;
 let TABLE_ROWS=[];                 // linhas calculadas da tabela de criativos
 let TABLE_TOTALS=null;             // totais (rodapé)
 let SORT={key:'invest',dir:'desc'}; // estado de ordenação da tabela
+let CREATIVE_SALES_MODE='attributed'; // attributed = Meta Ads | crossed = Hotmart Limpo via SCK/Criativo
 let HOT_PRODUCT_VALUE_STATS = {};     // estatística por produto para identificar parcelas prováveis quando a coluna de recorrência não vem na aba
 let CAMP_STATUS = {};                 // mapa: nome da campanha (Meta) -> 'active' | 'paused' (status atual/mais recente)
 const escAttr = s => String(s).replace(/"/g,'&quot;');
@@ -1913,8 +1942,8 @@ function render(){
   setText('fConvRate',fmtP(convRate));
   // Chart
   renderChart(byDay);
-  // Table — vendas do Meta Ads × ticket médio ponderado da Hotmart para estimar receita
-  renderTable(meta,ticketMedio);
+  // Table — alterna entre vendas atribuídas pelo Meta e vendas cruzadas da Hotmart Limpo
+  renderTable(meta,ticketMedio,f);
   // Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto
   renderProductBreakdown(f);
   // Funil PHM
@@ -1946,50 +1975,134 @@ function renderChart(byDay){
     }
   });
 }
-// ═══ TABLE — criativos Meta Ads × receita estimada pelo ticket médio Hotmart ═══
-// A coluna Vendas vem diretamente do Meta Ads (Action Omni Purchase).
-// A Receita é estimada por: vendas do criativo × ticket médio ponderado dos produtos
-// filtrados na Hotmart. ROAS = Receita ÷ Investimento. Tx Conversão = Vendas ÷ Cliques.
-function renderTable(meta,ticketMedio){
-  const avgTicket=Number.isFinite(ticketMedio)&&ticketMedio>0?ticketMedio:0;
-  const tableTag=document.getElementById('creativeTableTag');
-  if(tableTag){
-    tableTag.textContent='Meta Ads · ticket médio Hotmart: '+money2(avgTicket)+' · conversão = vendas ÷ cliques';
+// ═══ TABLE — CRIATIVOS × FONTE DE VENDAS SELECIONADA ═══
+// MODOS:
+//   • attributed: vendas vindas do Meta Ads (Action Omni Purchase).
+//   • crossed: compras únicas da aba Hotmart Limpo, cruzadas pelo código da coluna
+//     SCK / Tracking Source / Criativo com o código extraído do Ad Name da Meta.
+// Nos dois modos: Receita = Vendas × ticket médio ponderado; ROAS = Receita ÷ Investimento;
+// Tx Conversão = Vendas ÷ Link Clicks.
+function getCrossedHotmartSalesByCreative(f){
+  const byCode={};
+  const seen=new Set();
+  const withoutCreativeKeys=new Set();
+  let duplicates=0, validRows=0;
+  if(!COLS.hotCreative){
+    return {byCode,withoutCreative:0,duplicates,validRows,total:0,column:''};
   }
-  // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
+  filterHotmartSales(f).forEach(r=>{
+    const sale=sourceSaleFields(r,'limpo');
+    const key=sourceSaleKey(sale);
+    if(!key) return;
+    if(seen.has(key)){ duplicates++; return; }
+    const creativeRaw=String(r[COLS.hotCreative]||'').trim();
+    const code=extractCode(creativeRaw);
+    // Uma exportação pode repetir a mesma transação. Caso a primeira linha esteja sem SCK
+    // e outra repetição venha preenchida, a linha preenchida ainda deve ser aproveitada.
+    if(!code){ withoutCreativeKeys.add(key); return; }
+    withoutCreativeKeys.delete(key);
+    seen.add(key);
+    if(!byCode[code]) byCode[code]={vendas:0,rawNames:new Set(),saleKeys:new Set()};
+    if(byCode[code].saleKeys.has(key)) return;
+    byCode[code].saleKeys.add(key);
+    byCode[code].rawNames.add(creativeRaw);
+    byCode[code].vendas++;
+    validRows++;
+  });
+  return {byCode,withoutCreative:withoutCreativeKeys.size,duplicates,validRows,total:validRows,column:COLS.hotCreative};
+}
+function updateCreativeSalesSwitchUI(){
+  const sw=document.getElementById('creativeSalesSwitch');
+  const wrap=document.getElementById('creativeSalesSwitchWrap');
+  const left=document.getElementById('salesModeAttributedLabel');
+  const right=document.getElementById('salesModeCrossedLabel');
+  const crossed=CREATIVE_SALES_MODE==='crossed';
+  const available=!!COLS.hotCreative;
+  if(sw){
+    sw.checked=crossed;
+    sw.disabled=!available;
+    sw.setAttribute('aria-checked',crossed?'true':'false');
+  }
+  if(wrap){
+    wrap.classList.toggle('disabled',!available);
+    wrap.title=available
+      ? 'Alternar entre Action Omni Purchase da Meta e compras cruzadas da Hotmart Limpo'
+      : 'Coluna SCK/Tracking Source/Criativo não localizada na Hotmart Limpo';
+  }
+  if(left) left.classList.toggle('active',!crossed);
+  if(right) right.classList.toggle('active',crossed);
+  const salesHeader=document.getElementById('creativeSalesHeader');
+  const revenueHeader=document.getElementById('creativeRevenueHeader');
+  const convHeader=document.getElementById('creativeConvHeader');
+  if(salesHeader) salesHeader.title=crossed
+    ? 'Compras únicas da Hotmart Limpo cruzadas pelo código SCK/Criativo'
+    : 'Action Omni Purchase atribuído pelo Meta Ads';
+  if(revenueHeader) revenueHeader.title='Vendas do modo selecionado × ticket médio ponderado da Hotmart';
+  if(convHeader) convHeader.title='Vendas do modo selecionado ÷ cliques no link';
+}
+function renderTable(meta,ticketMedio,f){
+  const avgTicket=Number.isFinite(ticketMedio)&&ticketMedio>0?ticketMedio:0;
+  const crossed=getCrossedHotmartSalesByCreative(f);
+  // Se a coluna de cruzamento não estiver disponível, mantém o modo atribuído para não zerar a tabela.
+  if(CREATIVE_SALES_MODE==='crossed' && !COLS.hotCreative) CREATIVE_SALES_MODE='attributed';
+  updateCreativeSalesSwitchUI();
+  const isCrossed=CREATIVE_SALES_MODE==='crossed';
+  const tableTag=document.getElementById('creativeTableTag');
+  // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo.
   const byCode={};
   meta.forEach(r=>{
     const fullName=(r[COLS.metaAd]||r[COLS.metaCamp]||'Sem nome');
     const code=extractCode(fullName)||fullName.toUpperCase();
-    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendas:0,permalink:'',thumb:''};
+    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendasAtribuidas:0,permalink:'',thumb:''};
     a.names.add(fullName);
     a.invest+=parseMoney(r[COLS.metaSpend]);
     a.impr+=num(r[COLS.metaImpr]);
-    a.clicks+=num(r[COLS.metaClick]);   // CLIQUES = Link Clicks
-    a.vendas+=num(r[COLS.metaPurch]);   // VENDAS = Action Omni Purchase do Meta Ads
+    a.clicks+=num(r[COLS.metaClick]);
+    a.vendasAtribuidas+=num(r[COLS.metaPurch]);
     if(!a.permalink){ const pl=String(r[COLS.metaPermalink]||'').trim(); if(pl) a.permalink=pl; }
     if(!a.thumb){ const th=String(r[COLS.metaThumb]||'').trim(); if(th) a.thumb=th; }
   });
-  console.log('%c[dotb] Tabela Criativos vs KPIs: vendas Meta × ticket médio Hotmart.','color:#89cc72;font-weight:bold');
-  console.log('%c[dotb] Coluna de vendas Meta detectada:','color:#89cc72', COLS.metaPurch||'(não detectada)');
+  const metaCodes=new Set(Object.keys(byCode));
+  let crossedMatched=0;
+  Object.entries(crossed.byCode).forEach(([code,item])=>{
+    if(metaCodes.has(code)) crossedMatched+=item.vendas;
+  });
+  const crossedUnmatched=Math.max(0,crossed.total-crossedMatched);
+  if(tableTag){
+    if(isCrossed){
+      const extras=[];
+      if(crossed.withoutCreative) extras.push(crossed.withoutCreative+' sem código');
+      if(crossedUnmatched) extras.push(crossedUnmatched+' sem correspondência na Meta filtrada');
+      tableTag.textContent='Hotmart Limpo · cruzamento por '+(COLS.hotCreative||'SCK/Criativo')+' · ticket médio '+money2(avgTicket)+(extras.length?' · '+extras.join(' · '):'');
+    }else{
+      tableTag.textContent='Meta Ads · Action Omni Purchase · ticket médio Hotmart: '+money2(avgTicket);
+    }
+  }
+  console.log('%c[dotb] Fonte de vendas da tabela de criativos: '+(isCrossed?'HOTMART LIMPO (cruzamento SCK/Criativo)':'META ADS (Action Omni Purchase)'),'color:#89cc72;font-weight:bold');
+  if(isCrossed){
+    console.log('[dotb] Coluna Hotmart usada no cruzamento:',COLS.hotCreative||'(não detectada)');
+    console.log('[dotb] Vendas Hotmart com código:',crossed.total,'| correspondidas com Meta filtrada:',crossedMatched,'| sem correspondência:',crossedUnmatched,'| sem código:',crossed.withoutCreative,'| duplicatas removidas:',crossed.duplicates);
+  }
   console.log('%c[dotb] Ticket médio ponderado aplicado:','color:#4dffa7', money2(avgTicket));
   const rows=Object.values(byCode);
-  // Monta as linhas com todas as métricas já calculadas
   TABLE_ROWS=rows.map(m=>{
-    const ctr=m.impr>0?m.clicks/m.impr:0;           // CTR = Link Clicks / Impressões
-    const cpc=m.clicks>0?m.invest/m.clicks:0;       // CPC = Investimento / Link Clicks
-    const receita=m.vendas*avgTicket;               // Receita estimada = Vendas Meta × Ticket médio Hotmart
-    const roas=m.invest>0?receita/m.invest:0;       // ROAS = Receita estimada / Investimento
-    const conv=m.clicks>0?m.vendas/m.clicks:0;       // Tx Conversão = Vendas Meta / Link Clicks
-    return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
-            ctr, cpc, vendas:m.vendas, receita, roas, conv, permalink:m.permalink, thumb:m.thumb};
+    const vendasCruzadas=crossed.byCode[m.code]?.vendas||0;
+    const vendas=isCrossed?vendasCruzadas:m.vendasAtribuidas;
+    const ctr=m.impr>0?m.clicks/m.impr:0;
+    const cpc=m.clicks>0?m.invest/m.clicks:0;
+    const receita=vendas*avgTicket;
+    const roas=m.invest>0?receita/m.invest:0;
+    const conv=m.clicks>0?vendas/m.clicks:0;
+    return {code:m.code,name:[...m.names][0]||m.code,invest:m.invest,impr:m.impr,clicks:m.clicks,
+            ctr,cpc,vendas,vendasAtribuidas:m.vendasAtribuidas,vendasCruzadas,receita,roas,conv,
+            permalink:m.permalink,thumb:m.thumb};
   });
-  // Totais (independentes da ordenação)
-  let tI=0,tImp=0,tC=0,tV=0,tR=0;
-  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas;tR+=m.receita; });
+  let tI=0,tImp=0,tC=0,tV=0,tR=0,tVA=0,tVC=0;
+  TABLE_ROWS.forEach(m=>{tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas;tR+=m.receita;tVA+=m.vendasAtribuidas;tVC+=m.vendasCruzadas;});
   TABLE_TOTALS={
     invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV,
-    receita:tR,roas:tI>0?tR/tI:0,conv:tC>0?tV/tC:0,ticketMedio:avgTicket
+    vendasAtribuidas:tVA,vendasCruzadas:tVC,receita:tR,roas:tI>0?tR/tI:0,conv:tC>0?tV/tC:0,
+    ticketMedio:avgTicket,mode:CREATIVE_SALES_MODE
   };
   paintTable();
 }
@@ -2170,6 +2283,10 @@ function initEvents(){
     document.getElementById('stApproved').checked=true;
     document.getElementById('stCompleted').checked=true;
     document.getElementById('stOther').checked=false;
+    CREATIVE_SALES_MODE='attributed';
+    const salesSwitch=document.getElementById('creativeSalesSwitch');
+    if(salesSwitch) salesSwitch.checked=false;
+    updateCreativeSalesSwitchUI();
     document.getElementById('campSearch').value='';
     document.getElementById('prodSearch').value='';
     document.querySelectorAll('#campList .dd-opt,#prodList .dd-opt').forEach(o=>o.style.display='');
@@ -2188,6 +2305,15 @@ function initEvents(){
     const el=document.getElementById(b.dataset.target); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); b.classList.add('active');
   }));
+  // Switch da fonte de vendas na tabela de criativos.
+  const creativeSalesSwitch=document.getElementById('creativeSalesSwitch');
+  if(creativeSalesSwitch){
+    creativeSalesSwitch.addEventListener('change',()=>{
+      CREATIVE_SALES_MODE=creativeSalesSwitch.checked?'crossed':'attributed';
+      render();
+    });
+  }
+  updateCreativeSalesSwitchUI();
   // Ordenação da tabela de criativos (clicar no cabeçalho)
   document.querySelectorAll('#table-sec th.sortable').forEach(th=>{
     th.addEventListener('click',()=>{
