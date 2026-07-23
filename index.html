@@ -170,6 +170,9 @@ canvas{width:100%!important;}
 .tbl tfoot td{padding:12px 16px;border-top:2px solid var(--line);font-family:monospace;font-size:11.5px;color:var(--off);text-align:right;background:var(--bg-2);font-weight:600;}
 .tbl tfoot td.cr-name{text-align:left;font-family:var(--grotesk);}
 .roas-badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;}
+.roas-good{background:rgba(137,204,114,.15);color:var(--green);}
+.roas-bad{background:rgba(242,49,44,.12);color:var(--red);}
+#table-sec .tbl{min-width:1260px;}
 .tbl th.sortable{cursor:pointer;user-select:none;transition:color .15s;}
 .tbl th.sortable:hover{color:var(--off);}
 .tbl th.sort-active{color:var(--accent);}
@@ -473,7 +476,7 @@ body:not(.auth-pending) .login-screen{display:none;}
     </div>
     <!-- TABLE -->
     <div class="section" id="table-sec">
-      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag">Meta Ads · vendas por anúncio</span></div>
+      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag" id="creativeTableTag">Meta Ads · receita estimada pelo ticket médio Hotmart</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
@@ -485,6 +488,9 @@ body:not(.auth-pending) .login-screen{display:none;}
             <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="receita" title="Vendas Meta × ticket médio ponderado da Hotmart">Receita <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="roas" title="Receita estimada ÷ investimento">ROAS <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="conv" title="Vendas Meta ÷ cliques no link">Tx Conversão <span class="sort-caret"></span></th>
             <th>Links</th>
           </tr></thead>
           <tbody id="tblCreativos"></tbody>
@@ -1836,6 +1842,9 @@ function render(){
     if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
   const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart + Hotmart-PHM, sem parcelas
+  // Ticket médio ponderado dos produtos no período/filtros atuais.
+  // É usado somente para estimar a receita dos criativos, pois a venda por anúncio vem do Meta Ads.
+  const ticketMedio=vendas>0?bruto/vendas:0;
   console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
   const liquido=bruto-invest;
   const roas=invest>0?bruto/invest:0;      // ROAS = faturamento bruto (todas as parcelas) / investimento
@@ -1904,8 +1913,8 @@ function render(){
   setText('fConvRate',fmtP(convRate));
   // Chart
   renderChart(byDay);
-  // Table — criativos Meta Ads × vendas do próprio Meta Ads (sem cruzar com Hotmart/SCK)
-  renderTable(meta);
+  // Table — vendas do Meta Ads × ticket médio ponderado da Hotmart para estimar receita
+  renderTable(meta,ticketMedio);
   // Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto
   renderProductBreakdown(f);
   // Funil PHM
@@ -1937,10 +1946,16 @@ function renderChart(byDay){
     }
   });
 }
-// ═══ TABLE — criativos Meta Ads × vendas do próprio Meta Ads ═══
-// A tabela abaixo NÃO cruza com Hotmart/SCK. A coluna Vendas vem direto do Meta Ads
-// pela coluna COLS.metaPurch, travada como "Action Omni Purchase".
-function renderTable(meta){
+// ═══ TABLE — criativos Meta Ads × receita estimada pelo ticket médio Hotmart ═══
+// A coluna Vendas vem diretamente do Meta Ads (Action Omni Purchase).
+// A Receita é estimada por: vendas do criativo × ticket médio ponderado dos produtos
+// filtrados na Hotmart. ROAS = Receita ÷ Investimento. Tx Conversão = Vendas ÷ Cliques.
+function renderTable(meta,ticketMedio){
+  const avgTicket=Number.isFinite(ticketMedio)&&ticketMedio>0?ticketMedio:0;
+  const tableTag=document.getElementById('creativeTableTag');
+  if(tableTag){
+    tableTag.textContent='Meta Ads · ticket médio Hotmart: '+money2(avgTicket)+' · conversão = vendas ÷ cliques';
+  }
   // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
   const byCode={};
   meta.forEach(r=>{
@@ -1955,20 +1970,27 @@ function renderTable(meta){
     if(!a.permalink){ const pl=String(r[COLS.metaPermalink]||'').trim(); if(pl) a.permalink=pl; }
     if(!a.thumb){ const th=String(r[COLS.metaThumb]||'').trim(); if(th) a.thumb=th; }
   });
-  console.log('%c[dotb] Tabela Criativos vs KPIs usando vendas do Meta Ads (sem Hotmart/SCK).','color:#89cc72;font-weight:bold');
+  console.log('%c[dotb] Tabela Criativos vs KPIs: vendas Meta × ticket médio Hotmart.','color:#89cc72;font-weight:bold');
   console.log('%c[dotb] Coluna de vendas Meta detectada:','color:#89cc72', COLS.metaPurch||'(não detectada)');
+  console.log('%c[dotb] Ticket médio ponderado aplicado:','color:#4dffa7', money2(avgTicket));
   const rows=Object.values(byCode);
   // Monta as linhas com todas as métricas já calculadas
   TABLE_ROWS=rows.map(m=>{
-    const ctr=m.impr>0?m.clicks/m.impr:0;          // CTR = Link Clicks / Impressões
+    const ctr=m.impr>0?m.clicks/m.impr:0;           // CTR = Link Clicks / Impressões
     const cpc=m.clicks>0?m.invest/m.clicks:0;       // CPC = Investimento / Link Clicks
+    const receita=m.vendas*avgTicket;               // Receita estimada = Vendas Meta × Ticket médio Hotmart
+    const roas=m.invest>0?receita/m.invest:0;       // ROAS = Receita estimada / Investimento
+    const conv=m.clicks>0?m.vendas/m.clicks:0;       // Tx Conversão = Vendas Meta / Link Clicks
     return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
-            ctr, cpc, vendas:m.vendas, permalink:m.permalink, thumb:m.thumb};
+            ctr, cpc, vendas:m.vendas, receita, roas, conv, permalink:m.permalink, thumb:m.thumb};
   });
   // Totais (independentes da ordenação)
-  let tI=0,tImp=0,tC=0,tV=0;
-  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas; });
-  TABLE_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV};
+  let tI=0,tImp=0,tC=0,tV=0,tR=0;
+  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas;tR+=m.receita; });
+  TABLE_TOTALS={
+    invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV,
+    receita:tR,roas:tI>0?tR/tI:0,conv:tC>0?tV/tC:0,ticketMedio:avgTicket
+  };
   paintTable();
 }
 // Ordena e desenha a tabela conforme SORT
@@ -1976,7 +1998,7 @@ function paintTable(){
   const body=document.getElementById('tblCreativos');
   const foot=document.getElementById('tblFoot');
   if(!TABLE_ROWS.length){
-    body.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
+    body.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
     foot.innerHTML=''; updateSortIndicators(); return;
   }
   const {key,dir}=SORT, mul=dir==='asc'?1:-1;
@@ -1991,6 +2013,7 @@ function paintTable(){
     const label='<strong style="color:var(--off)">'+m.code+'</strong> <span style="color:var(--gray-2);font-size:10px">'+(m.name!==m.code?m.name:'')+'</span>';
     const thumbCell=m.thumb?'<img class="cr-thumb" src="'+escAttr(m.thumb)+'" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="dotbImgFail(this)">':'<span class="cr-noimg">—</span>';
     const linkCell=m.permalink?'<a class="ig-link" href="'+escAttr(m.permalink)+'" target="_blank" rel="noopener" title="Abrir no Instagram">'+IG_SVG+'</a>':'<span style="color:var(--gray-2)">—</span>';
+    const roasClass=m.roas>=1?'roas-good':'roas-bad';
     return '<tr>'+
       '<td class="cr-thumb-cell">'+thumbCell+'</td>'+
       '<td class="cr-name" title="'+escAttr(m.name)+'">'+label+'</td>'+
@@ -2000,11 +2023,15 @@ function paintTable(){
       '<td>'+fmtP(m.ctr)+'</td>'+
       '<td>'+money2(m.cpc)+'</td>'+
       '<td>'+fmtN(m.vendas)+'</td>'+
+      '<td>'+money2(m.receita)+'</td>'+
+      '<td><span class="roas-badge '+roasClass+'">'+fmtR(m.roas)+'</span></td>'+
+      '<td>'+fmtP(m.conv)+'</td>'+
       '<td>'+linkCell+'</td>'+
     '</tr>';
   }).join('');
   const t=TABLE_TOTALS;
-  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td></td></tr>';
+  const totalRoasClass=t.roas>=1?'roas-good':'roas-bad';
+  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td>'+money2(t.receita)+'</td><td><span class="roas-badge '+totalRoasClass+'">'+fmtR(t.roas)+'</span></td><td>'+fmtP(t.conv)+'</td><td></td></tr>';
   updateSortIndicators();
 }
 // Atualiza as setinhas ▲▼ nos cabeçalhos
