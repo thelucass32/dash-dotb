@@ -596,12 +596,12 @@ const COL_OVERRIDE = {
   metaPermalink:'', metaThumb:'',
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
-  hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
+  hotProd:'', hotStatus:'', hotValue:'', hotPrice:'Sales History Price', hotEmail:'', hotPhone:'', hotCreative:'',
   hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
   hotRecurrency:'Sales History Recurrency Number', // trava a QTD de vendas na coluna correta da aba Hotmart
   hotPaymentMode:'Sales History Offer Payment Mode', // assinatura usa SUBSCRIPTION e não segue a regra de Recurrency
   // Hotmart-PHM também passa a alimentar a QTD global de vendas únicas.
-  hotFullDate:'', hotFullDateBR:'', hotFullProd:'', hotFullStatus:'', hotFullValue:'',
+  hotFullDate:'', hotFullDateBR:'', hotFullProd:'', hotFullStatus:'', hotFullValue:'', hotFullPrice:'Sales History Price',
   hotFullEmail:'', hotFullPhone:'', hotFullTxnId:'', hotFullBuyer:'', hotFullRecurrency:'Sales History Recurrency Number', hotFullPaymentMode:'Sales History Offer Payment Mode',
   phmEmail:'', phmPhone:''
 };
@@ -876,7 +876,7 @@ function rowInstallmentClue(r){
     const mentionsInstallment = /(recurrency|recurrence|recurring|recorrencia|recorr|installment|parcela|parcelas|parcel|payment number|charge number|cobranca|cobrança|cycle|ciclo|assinatura|subscription)/.test(context);
     if(!mentionsInstallment) continue;
     if(/\b(first|primeira|primeiro|one|unica|unico)\b/.test(t)) return 'first';
-    if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto|sexta|sexto|sixth)\b/.test(t)) return 'later';
+    if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto|sexta|sexto)\b/.test(t)) return 'later';
     const m = t.match(/\d+/);
     if(m){
       const n = parseInt(m[0],10);
@@ -1114,6 +1114,10 @@ function detectColumns(){
   if(COLS.hotValue && /sales history price/i.test(COLS.hotValue)){
     console.warn('[dotb] ATENÇÃO: coluna de valor detectada como Sales History Price. Isso pode somar preço cheio. Ajuste a planilha/override para a coluna de valor da transação/parcela.');
   }
+  // Sales History Price: preço cheio/cadastrado do produto. Usado especificamente para
+  // calcular o ticket médio da Receita estimada na tabela de Criativos (a pedido do usuário) —
+  // NÃO é usado no Fat. Bruto do topo, que continua somando o valor efetivamente recebido.
+  COLS.hotPrice    = colFind(hh,[/^sales history price$/,/sales.?history.*price/,/^price$/,/pre[çc]o/]);
   COLS.hotEmail    = colFind(hh,[/sales history buyer email/,/buyer.?email/,/e-?mail/,/email/]);
   COLS.hotPhone    = colFind(hh,[/buyer.?phone/,/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/]);
   // Transaction ID da Hotmart — IDENTIFICADOR ÚNICO DE COMPRA. Parcelas da mesma compra
@@ -1183,6 +1187,9 @@ function detectColumns(){
     /revenue/,
     /valor/
   ]);
+  // Sales History Price também detectada na aba Hotmart-PHM, para manter o mesmo
+  // critério de ticket médio (Receita dos Criativos) quando um produto vem dessa fonte.
+  COLS.hotFullPrice    = colFind(fh,[/^sales history price$/,/sales.?history.*price/,/^price$/,/pre[çc]o/]);
   COLS.hotFullTxnId    = colFind(fh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
   COLS.hotFullBuyer    = colFind(fh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotFullRecurrency = colFind(fh,[
@@ -1247,6 +1254,7 @@ function detectColumns(){
   buildCampStatusMap();
   console.log('%c[dotb] Colunas detectadas:','color:#89cc72;font-weight:bold', COLS);
   console.log('%c[dotb] Coluna de status de campanha (Meta):','color:#89cc72;font-weight:bold', COLS.metaCampStatus || '(não detectada — todas tratadas como ATIVAS)');
+  console.log('[dotb] Coluna Sales History Price (ticket médio da Receita dos Criativos):', COLS.hotPrice || '(não detectada — Receita cai de volta para Fat. Bruto ÷ Vendas)');
   console.log('%c[dotb] Identidade do comprador na Hotmart:','color:#89cc72;font-weight:bold');
   console.log('  • Transaction ID:', COLS.hotTxnId || '(não detectada)');
   console.log('  • Buyer Name:    ', COLS.hotBuyer || '(não detectada)');
@@ -1625,14 +1633,14 @@ function getSourceCols(source){
   if(source==='full'){
     return {
       name:'Hotmart-PHM', date:COLS.hotFullDate, dateBR:COLS.hotFullDateBR, prod:COLS.hotFullProd,
-      status:COLS.hotFullStatus, value:COLS.hotFullValue, email:COLS.hotFullEmail,
+      status:COLS.hotFullStatus, value:COLS.hotFullValue, price:COLS.hotFullPrice, email:COLS.hotFullEmail,
       phone:COLS.hotFullPhone, txn:COLS.hotFullTxnId, buyer:COLS.hotFullBuyer,
       recurrency:COLS.hotFullRecurrency, paymentMode:COLS.hotFullPaymentMode
     };
   }
   return {
     name:'Hotmart', date:COLS.hotDate, dateBR:COLS.hotDateBR, prod:COLS.hotProd,
-    status:COLS.hotStatus, value:COLS.hotValue, email:COLS.hotEmail,
+    status:COLS.hotStatus, value:COLS.hotValue, price:COLS.hotPrice, email:COLS.hotEmail,
     phone:COLS.hotPhone, txn:COLS.hotTxnId, buyer:COLS.hotBuyer,
     recurrency:COLS.hotRecurrency, paymentMode:COLS.hotPaymentMode
   };
@@ -1674,10 +1682,11 @@ function sourceSaleFields(r, source){
   const buyer=c.buyer ? String(r[c.buyer]||'').trim().toLowerCase() : '';
   const txn=c.txn ? String(r[c.txn]||'').trim() : '';
   const value=c.value ? parseMoney(r[c.value]) : 0;
+  const price=c.price ? parseMoney(r[c.price]) : 0;
   const status=hotStatusGroup(c.status ? r[c.status] : '');
   const recurrency=sourceRecurrencyValue(r,c);
   const paymentMode=sourcePaymentModeValue(r,c);
-  return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, status, recurrency, paymentMode};
+  return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, price, status, recurrency, paymentMode};
 }
 function productSourceKey(name){
   // Normaliza o nome do produto para comparar a mesma oferta entre fontes diferentes.
@@ -1880,9 +1889,20 @@ function render(){
     if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
   const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart + Hotmart-PHM, sem parcelas
-  // Ticket médio ponderado dos produtos no período/filtros atuais.
-  // É usado somente para estimar a receita dos criativos, pois a venda por anúncio vem do Meta Ads.
-  const ticketMedio=vendas>0?bruto/vendas:0;
+  // Ticket médio usado SOMENTE para estimar a Receita da tabela de Criativos.
+  // A pedido do usuário, agora usa o campo Sales History Price (preço cheio/cadastrado do
+  // produto) em vez do valor real recebido por transação — ao contrário do Fat. Bruto do
+  // topo, que continua somando o valor efetivamente recebido (COLS.hotValue).
+  let somaPrecoVendasUnicas=0, vendasComPreco=0;
+  hotSales.forEach(sale=>{
+    const cols=getSourceCols(sale.source);
+    if(cols.price){
+      somaPrecoVendasUnicas+=parseMoney(sale.raw[cols.price]);
+      vendasComPreco++;
+    }
+  });
+  const ticketMedio=vendasComPreco>0?somaPrecoVendasUnicas/vendasComPreco:(vendas>0?bruto/vendas:0);
+  console.log('[dotb] Ticket médio (Sales History Price) para Receita dos Criativos: '+money2(ticketMedio)+' | vendas com preço encontrado: '+vendasComPreco+' de '+vendas);
   console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
   const liquido=bruto-invest;
   const roas=invest>0?bruto/invest:0;      // ROAS = faturamento bruto (todas as parcelas) / investimento
@@ -1924,6 +1944,7 @@ function render(){
       'Recurrency': (s.recurrency===null || s.recurrency===undefined || String(s.recurrency).trim()==='') ? '(vazio/sem recorrência)' : s.recurrency,
       'Offer Payment Mode': s.paymentMode || '(vazio/não detectado)',
       'Valor': s.value,
+      'Sales History Price': s.price,
       'Chave dedupe': s.key
     })));
   }
@@ -1989,7 +2010,7 @@ function renderChart(byDay){
 //   • attributed: vendas vindas do Meta Ads (Action Omni Purchase).
 //   • crossed: compras únicas da aba Hotmart Limpo, cruzadas pelo código da coluna
 //     SCK / Tracking Source / Criativo com o código extraído do Ad Name da Meta.
-// Nos dois modos: Receita = Vendas × ticket médio ponderado; ROAS = Receita ÷ Investimento;
+// Nos dois modos: Receita = Vendas × ticket médio (Sales History Price); ROAS = Receita ÷ Investimento;
 // Tx Conversão = Vendas ÷ Link Clicks.
 function getCrossedHotmartSalesByCreative(f){
   const byCode={};
@@ -2046,7 +2067,7 @@ function updateCreativeSalesSwitchUI(){
   if(salesHeader) salesHeader.title=crossed
     ? 'Compras únicas da Hotmart Limpo cruzadas pelo código SCK/Criativo'
     : 'Action Omni Purchase atribuído pelo Meta Ads';
-  if(revenueHeader) revenueHeader.title='Vendas do modo selecionado × ticket médio ponderado da Hotmart';
+  if(revenueHeader) revenueHeader.title='Vendas do modo selecionado × ticket médio (Sales History Price)';
   if(convHeader) convHeader.title='Vendas do modo selecionado ÷ cliques no link';
 }
 function renderTable(meta,ticketMedio,f){
@@ -2084,7 +2105,7 @@ function renderTable(meta,ticketMedio,f){
       if(crossedUnmatched) extras.push(crossedUnmatched+' sem correspondência na Meta filtrada');
       tableTag.textContent='Hotmart Limpo · cruzamento por '+(COLS.hotCreative||'SCK/Criativo')+' · ticket médio '+money2(avgTicket)+(extras.length?' · '+extras.join(' · '):'');
     }else{
-      tableTag.textContent='Meta Ads · Action Omni Purchase · ticket médio Hotmart: '+money2(avgTicket);
+      tableTag.textContent='Meta Ads · Action Omni Purchase · ticket médio (Sales History Price): '+money2(avgTicket);
     }
   }
   console.log('%c[dotb] Fonte de vendas da tabela de criativos: '+(isCrossed?'HOTMART LIMPO (cruzamento SCK/Criativo)':'META ADS (Action Omni Purchase)'),'color:#89cc72;font-weight:bold');
@@ -2093,7 +2114,7 @@ function renderTable(meta,ticketMedio,f){
     console.log('[dotb] Vendas Hotmart com código:',crossed.total,'| correspondidas com Meta filtrada:',crossedMatched,'| sem correspondência:',crossedUnmatched,'| sem código:',crossed.withoutCreative,'| duplicatas removidas:',crossed.duplicates);
     if(crossed.byCode.AD43) console.log('[dotb] Diagnóstico AD43:',{vendas:crossed.byCode.AD43.vendas,sck:[...crossed.byCode.AD43.rawNames]});
   }
-  console.log('%c[dotb] Ticket médio ponderado aplicado:','color:#4dffa7', money2(avgTicket));
+  console.log('%c[dotb] Ticket médio (Sales History Price) aplicado à Receita dos Criativos:','color:#4dffa7', money2(avgTicket));
   const rows=Object.values(byCode);
   TABLE_ROWS=rows.map(m=>{
     const vendasCruzadas=crossed.byCode[m.code]?.vendas||0;
