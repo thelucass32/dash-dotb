@@ -587,9 +587,7 @@ const IG_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 const COL_OVERRIDE = {
   metaDate:'', metaCamp:'', metaCampStatus:'', metaAd:'', metaSpend:'', metaImpr:'', metaClick:'',
   // Vendas da tabela/funil Meta: usar EXATAMENTE este cabeçalho da planilha Meta Ads.
-  // metaPurchVal: RECEITA da Meta. Se a detecção automática falhar, escreva aqui o
-  // nome EXATO do cabeçalho (ex.: 'Action Value Omni Purchase').
-  metaPageView:'', metaCheckout:'', metaPurch:'Action Omni Purchase', metaPurchVal:'', metaRoas:'',
+  metaPageView:'', metaCheckout:'', metaPurch:'Action Omni Purchase', metaPurchVal:'',
   metaPermalink:'', metaThumb:'',
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
@@ -1040,6 +1038,21 @@ function extractCode(s){
   if(str.startsWith('[field')) return ''; // ignora campos não preenchidos da Hotmart
   return str.split(/[_\-\s.|/]+/)[0].toUpperCase();
 }
+// Localiza, dentro do SCK completo da Hotmart, um código que exista entre os
+// criativos Meta visíveis. Ex.: "...-frio-B08" cruza com o anúncio "B08".
+function matchCreativeCode(s,byCode){
+  if(!s || !byCode) return '';
+  const direct=extractCode(s);
+  if(direct && byCode[direct]) return direct;
+  const tokens=String(s).toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+  // Percorre do fim para o início porque o código do criativo costuma fechar o SCK.
+  // Ignora tokens muito curtos (como "x") para não atribuir tráfego genérico/orgânico.
+  for(let i=tokens.length-1;i>=0;i--){
+    const token=tokens[i];
+    if(token.length>=3 && byCode[token]) return token;
+  }
+  return '';
+}
 function colFind(headers,patterns){
   if(!headers||!headers.length) return null;
   for(const pat of patterns){
@@ -1072,26 +1085,18 @@ function detectColumns(){
   COLS.metaCheckout= colFind(mh,[/action.?omni.?initiated.?checkout/,/omni.?initiated.?checkout/,/initiated.?checkout/,/in[ií]cio.*checkout/,/in[ií]cio de checkout/,/checkout.?initiat/,/add.?to.?cart/,/checkout/]);
   // VENDAS META = Action Omni Purchase (prioridade/exato). O override acima trava este cabeçalho.
   COLS.metaPurch   = colFind(mh,[/^action omni purchase$/, /action.?omni.?purchase/, /compras/, /^purchase/, /purchase/, /^vendas/, /conversões de compra/]);
-  // RECEITA META — o export da Meta normalmente nomeia esta coluna como
-  // "Action Value Omni Purchase" / "Action Values Omni Purchase", que os padrões
-  // antigos NÃO pegavam. Era por isso que Receita e ROAS vinham R$ 0,00.
   COLS.metaPurchVal= colFind(mh,[
     /^action value omni purchase$/,
-    /^action values omni purchase$/,
-    /action.?values?.?omni.?purchase/,
-    /omni.?purchase.?value/,
-    /action.?values?.*purchase/,
-    /purchase.*action.?values?/,
-    /website.?purchase.*value/,
+    /action.?value.?omni.?purchase/,
+    /action.?omni.?purchase.*value/,
+    /omni.?purchase.*value/,
     /valor de convers[aã]o.*compra/,
     /purchase.*conversion.?value/,
+    /purchase.*value/,
     /valor.*compra/,
     /conversion.?value/,
-    /receita/,
-    /^action values?$/
+    /receita/
   ]);
-  // ROAS da Meta — usado como último recurso para derivar receita (roas x investimento).
-  COLS.metaRoas    = colFind(mh,[/^purchase roas$/,/website.?purchase.?roas/,/omni.?purchase.?roas/,/purchase.?roas/,/^roas$/]);
   COLS.metaPermalink= colFind(mh,[/instagram.?permalink.?url/,/instagram.?permalink/,/permalink.?url/,/permalink/]);
   COLS.metaThumb   = colFind(mh,[/thumbnail.?url/,/thumbnail/,/image.?url/,/\bthumb\b/]);
   COLS.hotDate     = colFind(hh,[/^sales history order date$/,/^purchase order date$/,/order.?date/,/purchase.?order.?date/,/purchase.?date/,/data.*venda/,/^date$/,/created/]);
@@ -1128,7 +1133,7 @@ function detectColumns(){
   COLS.hotTxnId    = colFind(hh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
   // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
-  COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/tracking.?source.?sck/,/tracking.?source/,/\bsck\b/,/^src$/,/^sck$/,/criativo/,/creative/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
+  COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
     /sales.?history.*recurrency.*number/,
@@ -1250,47 +1255,6 @@ function detectColumns(){
       }
     }
   }
-  // SALVA-VIDAS DA RECEITA META: se a coluna detectada não existir ou somar R$ 0,00,
-  // varre os cabeçalhos da Meta atrás de qualquer coluna de valor de compra que
-  // realmente tenha número. Sem isso, Receita e ROAS da tabela ficam zerados.
-  if(!COL_OVERRIDE.metaPurchVal){
-    const sumMeta=c=>{ let t=0; RAW.meta.forEach(r=>{ t+=parseMoney(r[c]); }); return t; };
-    const curMeta = COLS.metaPurchVal ? sumMeta(COLS.metaPurchVal) : 0;
-    if(curMeta<=0){
-      // 1ª tentativa: colunas que citam compra/purchase E valor.
-      let cands = mh.filter(h=>{
-        const n=normSpaced(h);
-        return /(purchase|compra|conversion|convers|omni)/.test(n) && /(value|valor|amount|receita|revenue)/.test(n);
-      });
-      // Nunca confundir receita com investimento/custo: bloqueia a coluna de gasto
-      // já detectada e qualquer cabeçalho com cara de custo ("Valor usado", "Amount Spent"...).
-      const jaUsadas = new Set([COLS.metaSpend, COLS.metaImpr, COLS.metaClick,
-                                COLS.metaPageView, COLS.metaCheckout, COLS.metaPurch].filter(Boolean));
-      const ehCusto = h=>{
-        const n=normSpaced(h);
-        return /(usado|spent|spend|gasto|custo|\bcost\b|invest|budget|or[çc]amento|cpm|cpc|cpa|cpv|cpl|bid|lance|frequ)/.test(n);
-      };
-      cands = cands.filter(h=>!jaUsadas.has(h) && !ehCusto(h));
-      // 2ª tentativa: qualquer coluna de valor que não seja custo/investimento.
-      if(!cands.length){
-        cands = mh.filter(h=>{
-          const n=normSpaced(h);
-          return /(value|valor|amount|receita|revenue|faturamento)/.test(n) &&
-                 !jaUsadas.has(h) && !ehCusto(h);
-        });
-      }
-      let best=null,bestSum=0;
-      cands.forEach(c=>{ const t=sumMeta(c); if(t>bestSum){bestSum=t;best=c;} });
-      if(best){
-        console.warn('[dotb] ⚠ Receita Meta: coluna "'+(COLS.metaPurchVal||'—')+'" somava R$ 0,00. Ajustada automaticamente para "'+best+'" (soma: R$ '+fmtM(bestSum)+'). Para fixar, use COL_OVERRIDE.metaPurchVal.');
-        COLS.metaPurchVal=best;
-      } else if(COLS.metaRoas){
-        console.warn('[dotb] ⚠ Receita Meta: nenhuma coluna de valor de compra encontrada. Vou derivar a receita de "'+COLS.metaRoas+'" x investimento.');
-      } else {
-        console.error('[dotb] ✖ Receita Meta: nenhuma coluna de valor de compra nem de ROAS encontrada na aba Meta Ads. Adicione "Action Value Omni Purchase" (ou "Purchase ROAS") ao export, ou preencha COL_OVERRIDE.metaPurchVal. Cabeçalhos disponíveis logados abaixo.');
-      }
-    }
-  }
   buildHotProductValueStats();
   buildCampStatusMap();
   console.log('%c[dotb] Colunas detectadas:','color:#89cc72;font-weight:bold', COLS);
@@ -1304,11 +1268,6 @@ function detectColumns(){
   if(!COLS.hotRecurrency) console.warn('[dotb] ⚠ Coluna de recorrência não detectada. Ativei fallback conservador: procura pistas de parcela em outras colunas e ignora valores muito menores que o ticket típico do produto para não inflar CAC. Para máxima precisão, mantenha a coluna Sales History Recurrency Number na aba Hotmart.');
   else console.log('[dotb] Coluna de recorrência detectada:', COLS.hotRecurrency);
   console.log('[dotb] Coluna Offer Payment Mode Hotmart:', COLS.hotPaymentMode || '(não detectada)');
-  console.log('%c[dotb] Colunas comerciais Meta:','color:#89cc72;font-weight:bold');
-  console.log('  • Vendas (compras):', COLS.metaPurch    || '(não detectada)');
-  console.log('  • Receita (valor) :', COLS.metaPurchVal || '(não detectada)');
-  console.log('  • ROAS (fallback) :', COLS.metaRoas     || '(não detectada)');
-  console.log('  • SCK/criativo Hotmart:', COLS.hotCreative || '(não detectada)');
   console.log('[dotb] Cabeçalhos Meta:', mh);
   console.log('[dotb] Cabeçalhos Hotmart (limpo):', hh);
   console.log('[dotb] Coluna recorrência Hotmart-PHM:', COLS.hotFullRecurrency||'(não detectada)');
@@ -2053,13 +2012,7 @@ function renderTable(meta,f){
     a.clicks+=num(r[COLS.metaClick]);   // CLIQUES = Link Clicks
     a.pviews+=num(r[COLS.metaPageView]);
     a.metaVendas+=num(r[COLS.metaPurch]);          // VENDAS = Action Omni Purchase do Meta Ads
-    // Receita Meta: valor de compra direto; se a planilha só trouxer ROAS, deriva (roas x investimento).
-    let recLinha = COLS.metaPurchVal ? parseMoney(r[COLS.metaPurchVal]) : 0;
-    if(!recLinha && COLS.metaRoas){
-      const roasLinha = parseMoney(r[COLS.metaRoas]);
-      if(roasLinha>0) recLinha = roasLinha * parseMoney(r[COLS.metaSpend]);
-    }
-    a.metaReceita+=recLinha;
+    a.metaReceita+=parseMoney(r[COLS.metaPurchVal]);
     if(!a.permalink){ const pl=String(r[COLS.metaPermalink]||'').trim(); if(pl) a.permalink=pl; }
     if(!a.thumb){ const th=String(r[COLS.metaThumb]||'').trim(); if(th) a.thumb=th; }
   });
@@ -2072,7 +2025,7 @@ function renderTable(meta,f){
     // mesma compra (Transaction ID; ou a chave composta já usada no dedupe).
     const hotCodeBySaleKey=new Map();
     hotRevenueRows.forEach(r=>{
-      const code=extractCode(COLS.hotCreative?r[COLS.hotCreative]:'');
+      const code=matchCreativeCode(COLS.hotCreative?r[COLS.hotCreative]:'',byCode);
       if(!code || !byCode[code]) return;
       const key=saleDedupeKey(r);
       if(!hotCodeBySaleKey.has(key)) hotCodeBySaleKey.set(key,code);
@@ -2080,14 +2033,14 @@ function renderTable(meta,f){
     const hotSalesByKey=new Map();
     filterHotmartSales(f).forEach(r=>{
       const key=saleDedupeKey(r);
-      const code=extractCode(COLS.hotCreative?r[COLS.hotCreative]:'')||hotCodeBySaleKey.get(key);
+      const code=matchCreativeCode(COLS.hotCreative?r[COLS.hotCreative]:'',byCode)||hotCodeBySaleKey.get(key);
       if(!code || !byCode[code]) return;
       if(!hotSalesByKey.has(key)) hotSalesByKey.set(key,code);
     });
     hotSalesByKey.forEach(code=>{ byCode[code].hotVendas+=1; });
     hotRevenueRows.forEach(r=>{
       const key=saleDedupeKey(r);
-      const code=extractCode(COLS.hotCreative?r[COLS.hotCreative]:'')||hotCodeBySaleKey.get(key);
+      const code=matchCreativeCode(COLS.hotCreative?r[COLS.hotCreative]:'',byCode)||hotCodeBySaleKey.get(key);
       if(!code || !byCode[code]) return;
       byCode[code].hotReceita+=parseMoney(r[COLS.hotValue]);
     });
