@@ -170,28 +170,10 @@ canvas{width:100%!important;}
 .tbl tfoot td{padding:12px 16px;border-top:2px solid var(--line);font-family:monospace;font-size:11.5px;color:var(--off);text-align:right;background:var(--bg-2);font-weight:600;}
 .tbl tfoot td.cr-name{text-align:left;font-family:var(--grotesk);}
 .roas-badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:500;}
-.roas-good{background:rgba(137,204,114,.15);color:var(--green);}
-.roas-bad{background:rgba(242,49,44,.12);color:var(--red);}
-#table-sec .tbl{min-width:1260px;}
 .tbl th.sortable{cursor:pointer;user-select:none;transition:color .15s;}
 .tbl th.sortable:hover{color:var(--off);}
 .tbl th.sort-active{color:var(--accent);}
 .sort-caret{display:inline-block;font-size:8px;margin-left:2px;color:var(--accent);}
-/* SWITCH — fonte das vendas na tabela de criativos */
-.creative-head-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;}
-.sales-source-switch{display:flex;align-items:center;gap:8px;padding:6px 9px;background:var(--bg-1);border:1px solid var(--line);border-radius:12px;}
-.sales-source-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-2);font-weight:500;transition:color .18s;white-space:nowrap;}
-.sales-source-label.active{color:var(--accent);}
-.sales-toggle{position:relative;display:inline-flex;width:42px;height:23px;flex-shrink:0;}
-.sales-toggle input{position:absolute;opacity:0;width:0;height:0;}
-.sales-toggle-track{position:absolute;inset:0;border-radius:999px;background:var(--bg-3);border:1px solid var(--line);cursor:pointer;transition:background .2s,border-color .2s,opacity .2s;}
-.sales-toggle-track::after{content:'';position:absolute;width:17px;height:17px;left:2px;top:2px;border-radius:50%;background:var(--off);box-shadow:0 2px 5px rgba(0,0,0,.35);transition:transform .2s,background .2s;}
-.sales-toggle input:checked + .sales-toggle-track{background:var(--accent-dim);border-color:var(--accent);}
-.sales-toggle input:checked + .sales-toggle-track::after{transform:translateX(19px);background:var(--accent);}
-.sales-toggle input:focus-visible + .sales-toggle-track{outline:2px solid var(--accent);outline-offset:2px;}
-.sales-toggle input:disabled + .sales-toggle-track{cursor:not-allowed;opacity:.35;}
-.sales-source-switch.disabled{opacity:.55;}
-@media(max-width:700px){.creative-head-controls{justify-content:flex-start;width:100%;}.sales-source-switch{width:100%;justify-content:center;}}
 /* Tabela "Vendas por produto" — primeira coluna alinhada à esquerda */
 #prod-breakdown-sec .tbl{min-width:680px;}
 #prod-breakdown-sec .tbl th:first-child,#prod-breakdown-sec .tbl td:first-child{text-align:left;padding-left:16px;}
@@ -491,20 +473,7 @@ body:not(.auth-pending) .login-screen{display:none;}
     </div>
     <!-- TABLE -->
     <div class="section" id="table-sec">
-      <div class="section-head">
-        <h2 class="section-title">Criativos <em>vs KPIs</em></h2>
-        <div class="creative-head-controls">
-          <span class="section-tag" id="creativeTableTag">Meta Ads · receita estimada pelo ticket médio Hotmart</span>
-          <div class="sales-source-switch" id="creativeSalesSwitchWrap" title="Alternar a origem das vendas da tabela">
-            <span class="sales-source-label active" id="salesModeAttributedLabel">Atribuídas</span>
-            <label class="sales-toggle" aria-label="Alternar entre vendas atribuídas e vendas cruzadas">
-              <input type="checkbox" id="creativeSalesSwitch">
-              <span class="sales-toggle-track"></span>
-            </label>
-            <span class="sales-source-label" id="salesModeCrossedLabel">Cruzadas</span>
-          </div>
-        </div>
-      </div>
+      <div class="section-head"><h2 class="section-title">Criativos <em>vs KPIs</em></h2><span class="section-tag">Meta Ads · vendas por anúncio</span></div>
       <div class="tbl-wrap">
         <table class="tbl">
           <thead><tr>
@@ -515,10 +484,7 @@ body:not(.auth-pending) .login-screen{display:none;}
             <th class="sortable" data-sort="clicks">Cliques <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="vendas" id="creativeSalesHeader">Vendas <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="receita" id="creativeRevenueHeader" title="Vendas × ticket médio ponderado da Hotmart">Receita <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="roas" title="Receita estimada ÷ investimento">ROAS <span class="sort-caret"></span></th>
-            <th class="sortable" data-sort="conv" id="creativeConvHeader" title="Vendas ÷ cliques no link">Tx Conversão <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
             <th>Links</th>
           </tr></thead>
           <tbody id="tblCreativos"></tbody>
@@ -566,9 +532,9 @@ body:not(.auth-pending) .login-screen{display:none;}
 const SHEET_ID = '';
 const URLS = {
   meta:        'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=1463017033&single=true&output=csv',
-  // Fonte oficial para KPIs, produtos e cruzamento por criativo: aba Hotmart Limpo (gid 565168335).
-  // Esta aba contém SCK/Tracking Source, produto, status, transação e regra de recorrência.
-  hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=565168335&single=true&output=csv',
+  // Fonte oficial para KPIs, gráfico, produtos e tabela: aba Hotmart (gid 721086669)
+  // Esta aba contém as colunas Sales History Recurrency Number e Sales History Offer Payment Mode.
+  hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv',
   phm:         'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=2130889671&single=true&output=csv',
   // Mesma aba Hotmart também alimenta o Funil PHM, evitando divergência de cabeçalhos.
   hotmartFull: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv'
@@ -581,7 +547,6 @@ let chartInstance=null;
 let TABLE_ROWS=[];                 // linhas calculadas da tabela de criativos
 let TABLE_TOTALS=null;             // totais (rodapé)
 let SORT={key:'invest',dir:'desc'}; // estado de ordenação da tabela
-let CREATIVE_SALES_MODE='attributed'; // attributed = Meta Ads | crossed = Hotmart Limpo via SCK/Criativo
 let HOT_PRODUCT_VALUE_STATS = {};     // estatística por produto para identificar parcelas prováveis quando a coluna de recorrência não vem na aba
 let CAMP_STATUS = {};                 // mapa: nome da campanha (Meta) -> 'active' | 'paused' (status atual/mais recente)
 const escAttr = s => String(s).replace(/"/g,'&quot;');
@@ -596,12 +561,12 @@ const COL_OVERRIDE = {
   metaPermalink:'', metaThumb:'',
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
-  hotProd:'', hotStatus:'', hotValue:'', hotPrice:'Sales History Price', hotEmail:'', hotPhone:'', hotCreative:'',
+  hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
   hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
   hotRecurrency:'Sales History Recurrency Number', // trava a QTD de vendas na coluna correta da aba Hotmart
   hotPaymentMode:'Sales History Offer Payment Mode', // assinatura usa SUBSCRIPTION e não segue a regra de Recurrency
   // Hotmart-PHM também passa a alimentar a QTD global de vendas únicas.
-  hotFullDate:'', hotFullDateBR:'', hotFullProd:'', hotFullStatus:'', hotFullValue:'', hotFullPrice:'Sales History Price',
+  hotFullDate:'', hotFullDateBR:'', hotFullProd:'', hotFullStatus:'', hotFullValue:'',
   hotFullEmail:'', hotFullPhone:'', hotFullTxnId:'', hotFullBuyer:'', hotFullRecurrency:'Sales History Recurrency Number', hotFullPaymentMode:'Sales History Offer Payment Mode',
   phmEmail:'', phmPhone:''
 };
@@ -876,7 +841,7 @@ function rowInstallmentClue(r){
     const mentionsInstallment = /(recurrency|recurrence|recurring|recorrencia|recorr|installment|parcela|parcelas|parcel|payment number|charge number|cobranca|cobrança|cycle|ciclo|assinatura|subscription)/.test(context);
     if(!mentionsInstallment) continue;
     if(/\b(first|primeira|primeiro|one|unica|unico)\b/.test(t)) return 'first';
-    if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto|sexta|sexto)\b/.test(t)) return 'later';
+    if(/\b(second|segunda|segundo|third|terceira|terceiro|quarta|quarto|quinta|quinto|sexta|sexto|sixth)\b/.test(t)) return 'later';
     const m = t.match(/\d+/);
     if(m){
       const n = parseInt(m[0],10);
@@ -1036,21 +1001,12 @@ function isUniqueHotmartSale(r){
   return true;
 }
 function normPhone(p){ if(!p) return ''; return String(p).replace(/\D/g,'').slice(-9); }
-// Extrai o código do criativo em qualquer posição do texto.
-// Exemplos aceitos: "AD43_FULL_STACK", "full-stack-ad43", "sck=AD43", "ID 145".
+// Extrai o código do criativo: "B04_PHM_FAZTUDO" → "B04" ; "B04" → "B04"
 function extractCode(s){
   if(!s) return '';
-  const str=String(s).trim();
-  if(/^\[field/i.test(str)) return ''; // campo dinâmico não preenchido da Hotmart
-  const upper=normText(str).toUpperCase();
-  // Prioriza códigos com letras + números, removendo separadores internos: AD43, ID145, B04.
-  const matches=[...upper.matchAll(/(?:^|[^A-Z0-9])([A-Z]{1,6})[\s_-]*(\d{1,5})(?=$|[^A-Z0-9])/g)];
-  if(matches.length){
-    // Evita interpretar parâmetros/anos genéricos quando há códigos típicos de criativo.
-    const preferred=matches.find(m=>/^(AD|ID|CR|CRI|B|C|V|IMG|VID)$/i.test(m[1])) || matches[0];
-    return (preferred[1]+preferred[2]).toUpperCase();
-  }
-  return upper.split(/[_\-\s.|/?=&]+/).filter(Boolean)[0]||'';
+  const str = String(s).trim();
+  if(str.startsWith('[field')) return ''; // ignora campos não preenchidos da Hotmart
+  return str.split(/[_\-\s.|/]+/)[0].toUpperCase();
 }
 function colFind(headers,patterns){
   if(!headers||!headers.length) return null;
@@ -1114,10 +1070,6 @@ function detectColumns(){
   if(COLS.hotValue && /sales history price/i.test(COLS.hotValue)){
     console.warn('[dotb] ATENÇÃO: coluna de valor detectada como Sales History Price. Isso pode somar preço cheio. Ajuste a planilha/override para a coluna de valor da transação/parcela.');
   }
-  // Sales History Price: preço cheio/cadastrado do produto. Usado especificamente para
-  // calcular o ticket médio da Receita estimada na tabela de Criativos (a pedido do usuário) —
-  // NÃO é usado no Fat. Bruto do topo, que continua somando o valor efetivamente recebido.
-  COLS.hotPrice    = colFind(hh,[/^sales history price$/,/sales.?history.*price/,/^price$/,/pre[çc]o/]);
   COLS.hotEmail    = colFind(hh,[/sales history buyer email/,/buyer.?email/,/e-?mail/,/email/]);
   COLS.hotPhone    = colFind(hh,[/buyer.?phone/,/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/]);
   // Transaction ID da Hotmart — IDENTIFICADOR ÚNICO DE COMPRA. Parcelas da mesma compra
@@ -1125,7 +1077,7 @@ function detectColumns(){
   COLS.hotTxnId    = colFind(hh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
   // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
-  COLS.hotCreative = colFind(hh,[/^sales history tracking source sck$/,/sales history tracking source sck/,/tracking.?source.*sck/,/tracking.?source/,/^sck$/,/criativo/,/creative/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
+  COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
     /sales.?history.*recurrency.*number/,
@@ -1187,9 +1139,6 @@ function detectColumns(){
     /revenue/,
     /valor/
   ]);
-  // Sales History Price também detectada na aba Hotmart-PHM, para manter o mesmo
-  // critério de ticket médio (Receita dos Criativos) quando um produto vem dessa fonte.
-  COLS.hotFullPrice    = colFind(fh,[/^sales history price$/,/sales.?history.*price/,/^price$/,/pre[çc]o/]);
   COLS.hotFullTxnId    = colFind(fh,[/^sales history transaction$/,/sales.?history.?transaction$/,/sales.?history.?transaction.?id/,/sales.?history.?transaction.?code/,/^transaction$/,/transaction.?id/,/transaction.?code/,/hotmart.?transaction/,/^transa[çc][aã]o$/,/transa[çc][aã]o.?id/,/c[oó]digo.*transa/]);
   COLS.hotFullBuyer    = colFind(fh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotFullRecurrency = colFind(fh,[
@@ -1254,7 +1203,6 @@ function detectColumns(){
   buildCampStatusMap();
   console.log('%c[dotb] Colunas detectadas:','color:#89cc72;font-weight:bold', COLS);
   console.log('%c[dotb] Coluna de status de campanha (Meta):','color:#89cc72;font-weight:bold', COLS.metaCampStatus || '(não detectada — todas tratadas como ATIVAS)');
-  console.log('[dotb] Coluna Sales History Price (ticket médio da Receita dos Criativos):', COLS.hotPrice || '(não detectada — Receita cai de volta para Fat. Bruto ÷ Vendas)');
   console.log('%c[dotb] Identidade do comprador na Hotmart:','color:#89cc72;font-weight:bold');
   console.log('  • Transaction ID:', COLS.hotTxnId || '(não detectada)');
   console.log('  • Buyer Name:    ', COLS.hotBuyer || '(não detectada)');
@@ -1360,10 +1308,10 @@ async function loadData(){
     const p  = await fetchCSV(URLS.phm);
     const hf = await fetchCSV(URLS.hotmartFull);
     RAW.meta=cleanRows(csvToObjects(m),'Meta');
-    RAW.hotmart=cleanRows(csvToObjects(h),'Hotmart Limpo');
+    RAW.hotmart=cleanRows(csvToObjects(h),'Hotmart');
     RAW.phm=cleanRows(csvToObjects(p),'PHM');
     RAW.hotmartFull=cleanRows(csvToObjects(hf),'Hotmart-PHM');
-    console.log('%c[dotb] Fonte Hotmart KPIs/tabela/cruzamento: Hotmart Limpo (gid 565168335)','color:#89cc72;font-weight:bold');
+    console.log('%c[dotb] Fonte Hotmart KPIs/tabela: Hotmart (gid 565168335)','color:#89cc72;font-weight:bold');
     console.log('%c[dotb] Fonte Hotmart Funil PHM: Hotmart-PHM (gid 721086669)','color:#89cc72;font-weight:bold');
     detectColumns();
     setStatus('ok','Ao vivo · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
@@ -1633,14 +1581,14 @@ function getSourceCols(source){
   if(source==='full'){
     return {
       name:'Hotmart-PHM', date:COLS.hotFullDate, dateBR:COLS.hotFullDateBR, prod:COLS.hotFullProd,
-      status:COLS.hotFullStatus, value:COLS.hotFullValue, price:COLS.hotFullPrice, email:COLS.hotFullEmail,
+      status:COLS.hotFullStatus, value:COLS.hotFullValue, email:COLS.hotFullEmail,
       phone:COLS.hotFullPhone, txn:COLS.hotFullTxnId, buyer:COLS.hotFullBuyer,
       recurrency:COLS.hotFullRecurrency, paymentMode:COLS.hotFullPaymentMode
     };
   }
   return {
     name:'Hotmart', date:COLS.hotDate, dateBR:COLS.hotDateBR, prod:COLS.hotProd,
-    status:COLS.hotStatus, value:COLS.hotValue, price:COLS.hotPrice, email:COLS.hotEmail,
+    status:COLS.hotStatus, value:COLS.hotValue, email:COLS.hotEmail,
     phone:COLS.hotPhone, txn:COLS.hotTxnId, buyer:COLS.hotBuyer,
     recurrency:COLS.hotRecurrency, paymentMode:COLS.hotPaymentMode
   };
@@ -1682,11 +1630,10 @@ function sourceSaleFields(r, source){
   const buyer=c.buyer ? String(r[c.buyer]||'').trim().toLowerCase() : '';
   const txn=c.txn ? String(r[c.txn]||'').trim() : '';
   const value=c.value ? parseMoney(r[c.value]) : 0;
-  const price=c.price ? parseMoney(r[c.price]) : 0;
   const status=hotStatusGroup(c.status ? r[c.status] : '');
   const recurrency=sourceRecurrencyValue(r,c);
   const paymentMode=sourcePaymentModeValue(r,c);
-  return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, price, status, recurrency, paymentMode};
+  return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, status, recurrency, paymentMode};
 }
 function productSourceKey(name){
   // Normaliza o nome do produto para comparar a mesma oferta entre fontes diferentes.
@@ -1889,20 +1836,6 @@ function render(){
     if(k && !set.has(k)){ set.add(k); dayData.vendas+=1; }
   });
   const vendas=countGlobalSales(hotSales);   // VENDAS ÚNICAS globais: Hotmart + Hotmart-PHM, sem parcelas
-  // Ticket médio usado SOMENTE para estimar a Receita da tabela de Criativos.
-  // A pedido do usuário, agora usa o campo Sales History Price (preço cheio/cadastrado do
-  // produto) em vez do valor real recebido por transação — ao contrário do Fat. Bruto do
-  // topo, que continua somando o valor efetivamente recebido (COLS.hotValue).
-  let somaPrecoVendasUnicas=0, vendasComPreco=0;
-  hotSales.forEach(sale=>{
-    const cols=getSourceCols(sale.source);
-    if(cols.price){
-      somaPrecoVendasUnicas+=parseMoney(sale.raw[cols.price]);
-      vendasComPreco++;
-    }
-  });
-  const ticketMedio=vendasComPreco>0?somaPrecoVendasUnicas/vendasComPreco:(vendas>0?bruto/vendas:0);
-  console.log('[dotb] Ticket médio (Sales History Price) para Receita dos Criativos: '+money2(ticketMedio)+' | vendas com preço encontrado: '+vendasComPreco+' de '+vendas);
   console.log('[dotb] Verificação RENDER - hotSales.length:', hotSales.length);
   const liquido=bruto-invest;
   const roas=invest>0?bruto/invest:0;      // ROAS = faturamento bruto (todas as parcelas) / investimento
@@ -1944,7 +1877,6 @@ function render(){
       'Recurrency': (s.recurrency===null || s.recurrency===undefined || String(s.recurrency).trim()==='') ? '(vazio/sem recorrência)' : s.recurrency,
       'Offer Payment Mode': s.paymentMode || '(vazio/não detectado)',
       'Valor': s.value,
-      'Sales History Price': s.price,
       'Chave dedupe': s.key
     })));
   }
@@ -1972,8 +1904,8 @@ function render(){
   setText('fConvRate',fmtP(convRate));
   // Chart
   renderChart(byDay);
-  // Table — alterna entre vendas atribuídas pelo Meta e vendas cruzadas da Hotmart Limpo
-  renderTable(meta,ticketMedio,f);
+  // Table — criativos Meta Ads × vendas do próprio Meta Ads (sem cruzar com Hotmart/SCK)
+  renderTable(meta);
   // Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto
   renderProductBreakdown(f);
   // Funil PHM
@@ -2005,136 +1937,38 @@ function renderChart(byDay){
     }
   });
 }
-// ═══ TABLE — CRIATIVOS × FONTE DE VENDAS SELECIONADA ═══
-// MODOS:
-//   • attributed: vendas vindas do Meta Ads (Action Omni Purchase).
-//   • crossed: compras únicas da aba Hotmart Limpo, cruzadas pelo código da coluna
-//     SCK / Tracking Source / Criativo com o código extraído do Ad Name da Meta.
-// Nos dois modos: Receita = Vendas × ticket médio (Sales History Price); ROAS = Receita ÷ Investimento;
-// Tx Conversão = Vendas ÷ Link Clicks.
-function getCrossedHotmartSalesByCreative(f){
-  const byCode={};
-  const seen=new Set();
-  const withoutCreativeKeys=new Set();
-  let duplicates=0, validRows=0;
-  if(!COLS.hotCreative){
-    return {byCode,withoutCreative:0,duplicates,validRows,total:0,column:''};
-  }
-  filterHotmartSales(f).forEach(r=>{
-    const sale=sourceSaleFields(r,'limpo');
-    const key=sourceSaleKey(sale);
-    if(!key) return;
-    if(seen.has(key)){ duplicates++; return; }
-    const creativeRaw=String(r[COLS.hotCreative]||'').trim();
-    const code=extractCode(creativeRaw);
-    // Uma exportação pode repetir a mesma transação. Caso a primeira linha esteja sem SCK
-    // e outra repetição venha preenchida, a linha preenchida ainda deve ser aproveitada.
-    if(!code){ withoutCreativeKeys.add(key); return; }
-    withoutCreativeKeys.delete(key);
-    seen.add(key);
-    if(!byCode[code]) byCode[code]={vendas:0,rawNames:new Set(),saleKeys:new Set()};
-    if(byCode[code].saleKeys.has(key)) return;
-    byCode[code].saleKeys.add(key);
-    byCode[code].rawNames.add(creativeRaw);
-    byCode[code].vendas++;
-    validRows++;
-  });
-  return {byCode,withoutCreative:withoutCreativeKeys.size,duplicates,validRows,total:validRows,column:COLS.hotCreative};
-}
-function updateCreativeSalesSwitchUI(){
-  const sw=document.getElementById('creativeSalesSwitch');
-  const wrap=document.getElementById('creativeSalesSwitchWrap');
-  const left=document.getElementById('salesModeAttributedLabel');
-  const right=document.getElementById('salesModeCrossedLabel');
-  const crossed=CREATIVE_SALES_MODE==='crossed';
-  const available=!!COLS.hotCreative;
-  if(sw){
-    sw.checked=crossed;
-    sw.disabled=!available;
-    sw.setAttribute('aria-checked',crossed?'true':'false');
-  }
-  if(wrap){
-    wrap.classList.toggle('disabled',!available);
-    wrap.title=available
-      ? 'Alternar entre Action Omni Purchase da Meta e compras cruzadas da Hotmart Limpo'
-      : 'Coluna SCK/Tracking Source/Criativo não localizada na Hotmart Limpo';
-  }
-  if(left) left.classList.toggle('active',!crossed);
-  if(right) right.classList.toggle('active',crossed);
-  const salesHeader=document.getElementById('creativeSalesHeader');
-  const revenueHeader=document.getElementById('creativeRevenueHeader');
-  const convHeader=document.getElementById('creativeConvHeader');
-  if(salesHeader) salesHeader.title=crossed
-    ? 'Compras únicas da Hotmart Limpo cruzadas pelo código SCK/Criativo'
-    : 'Action Omni Purchase atribuído pelo Meta Ads';
-  if(revenueHeader) revenueHeader.title='Vendas do modo selecionado × ticket médio (Sales History Price)';
-  if(convHeader) convHeader.title='Vendas do modo selecionado ÷ cliques no link';
-}
-function renderTable(meta,ticketMedio,f){
-  const avgTicket=Number.isFinite(ticketMedio)&&ticketMedio>0?ticketMedio:0;
-  const crossed=getCrossedHotmartSalesByCreative(f);
-  // Se a coluna de cruzamento não estiver disponível, mantém o modo atribuído para não zerar a tabela.
-  if(CREATIVE_SALES_MODE==='crossed' && !COLS.hotCreative) CREATIVE_SALES_MODE='attributed';
-  updateCreativeSalesSwitchUI();
-  const isCrossed=CREATIVE_SALES_MODE==='crossed';
-  const tableTag=document.getElementById('creativeTableTag');
-  // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo.
+// ═══ TABLE — criativos Meta Ads × vendas do próprio Meta Ads ═══
+// A tabela abaixo NÃO cruza com Hotmart/SCK. A coluna Vendas vem direto do Meta Ads
+// pela coluna COLS.metaPurch, travada como "Action Omni Purchase".
+function renderTable(meta){
+  // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
   const byCode={};
   meta.forEach(r=>{
     const fullName=(r[COLS.metaAd]||r[COLS.metaCamp]||'Sem nome');
     const code=extractCode(fullName)||fullName.toUpperCase();
-    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendasAtribuidas:0,permalink:'',thumb:''};
+    const a=byCode[code]=byCode[code]||{code,names:new Set(),invest:0,impr:0,clicks:0,vendas:0,permalink:'',thumb:''};
     a.names.add(fullName);
     a.invest+=parseMoney(r[COLS.metaSpend]);
     a.impr+=num(r[COLS.metaImpr]);
-    a.clicks+=num(r[COLS.metaClick]);
-    a.vendasAtribuidas+=num(r[COLS.metaPurch]);
+    a.clicks+=num(r[COLS.metaClick]);   // CLIQUES = Link Clicks
+    a.vendas+=num(r[COLS.metaPurch]);   // VENDAS = Action Omni Purchase do Meta Ads
     if(!a.permalink){ const pl=String(r[COLS.metaPermalink]||'').trim(); if(pl) a.permalink=pl; }
     if(!a.thumb){ const th=String(r[COLS.metaThumb]||'').trim(); if(th) a.thumb=th; }
   });
-  const metaCodes=new Set(Object.keys(byCode));
-  let crossedMatched=0;
-  Object.entries(crossed.byCode).forEach(([code,item])=>{
-    if(metaCodes.has(code)) crossedMatched+=item.vendas;
-  });
-  const crossedUnmatched=Math.max(0,crossed.total-crossedMatched);
-  if(tableTag){
-    if(isCrossed){
-      const extras=[];
-      if(crossed.withoutCreative) extras.push(crossed.withoutCreative+' sem código');
-      if(crossedUnmatched) extras.push(crossedUnmatched+' sem correspondência na Meta filtrada');
-      tableTag.textContent='Hotmart Limpo · cruzamento por '+(COLS.hotCreative||'SCK/Criativo')+' · ticket médio '+money2(avgTicket)+(extras.length?' · '+extras.join(' · '):'');
-    }else{
-      tableTag.textContent='Meta Ads · Action Omni Purchase · ticket médio (Sales History Price): '+money2(avgTicket);
-    }
-  }
-  console.log('%c[dotb] Fonte de vendas da tabela de criativos: '+(isCrossed?'HOTMART LIMPO (cruzamento SCK/Criativo)':'META ADS (Action Omni Purchase)'),'color:#89cc72;font-weight:bold');
-  if(isCrossed){
-    console.log('[dotb] Coluna Hotmart usada no cruzamento:',COLS.hotCreative||'(não detectada)');
-    console.log('[dotb] Vendas Hotmart com código:',crossed.total,'| correspondidas com Meta filtrada:',crossedMatched,'| sem correspondência:',crossedUnmatched,'| sem código:',crossed.withoutCreative,'| duplicatas removidas:',crossed.duplicates);
-    if(crossed.byCode.AD43) console.log('[dotb] Diagnóstico AD43:',{vendas:crossed.byCode.AD43.vendas,sck:[...crossed.byCode.AD43.rawNames]});
-  }
-  console.log('%c[dotb] Ticket médio (Sales History Price) aplicado à Receita dos Criativos:','color:#4dffa7', money2(avgTicket));
+  console.log('%c[dotb] Tabela Criativos vs KPIs usando vendas do Meta Ads (sem Hotmart/SCK).','color:#89cc72;font-weight:bold');
+  console.log('%c[dotb] Coluna de vendas Meta detectada:','color:#89cc72', COLS.metaPurch||'(não detectada)');
   const rows=Object.values(byCode);
+  // Monta as linhas com todas as métricas já calculadas
   TABLE_ROWS=rows.map(m=>{
-    const vendasCruzadas=crossed.byCode[m.code]?.vendas||0;
-    const vendas=isCrossed?vendasCruzadas:m.vendasAtribuidas;
-    const ctr=m.impr>0?m.clicks/m.impr:0;
-    const cpc=m.clicks>0?m.invest/m.clicks:0;
-    const receita=vendas*avgTicket;
-    const roas=m.invest>0?receita/m.invest:0;
-    const conv=m.clicks>0?vendas/m.clicks:0;
-    return {code:m.code,name:[...m.names][0]||m.code,invest:m.invest,impr:m.impr,clicks:m.clicks,
-            ctr,cpc,vendas,vendasAtribuidas:m.vendasAtribuidas,vendasCruzadas,receita,roas,conv,
-            permalink:m.permalink,thumb:m.thumb};
+    const ctr=m.impr>0?m.clicks/m.impr:0;          // CTR = Link Clicks / Impressões
+    const cpc=m.clicks>0?m.invest/m.clicks:0;       // CPC = Investimento / Link Clicks
+    return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
+            ctr, cpc, vendas:m.vendas, permalink:m.permalink, thumb:m.thumb};
   });
-  let tI=0,tImp=0,tC=0,tV=0,tR=0,tVA=0,tVC=0;
-  TABLE_ROWS.forEach(m=>{tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas;tR+=m.receita;tVA+=m.vendasAtribuidas;tVC+=m.vendasCruzadas;});
-  TABLE_TOTALS={
-    invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV,
-    vendasAtribuidas:tVA,vendasCruzadas:tVC,receita:tR,roas:tI>0?tR/tI:0,conv:tC>0?tV/tC:0,
-    ticketMedio:avgTicket,mode:CREATIVE_SALES_MODE
-  };
+  // Totais (independentes da ordenação)
+  let tI=0,tImp=0,tC=0,tV=0;
+  TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tV+=m.vendas; });
+  TABLE_TOTALS={invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,vendas:tV};
   paintTable();
 }
 // Ordena e desenha a tabela conforme SORT
@@ -2142,7 +1976,7 @@ function paintTable(){
   const body=document.getElementById('tblCreativos');
   const foot=document.getElementById('tblFoot');
   if(!TABLE_ROWS.length){
-    body.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
+    body.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
     foot.innerHTML=''; updateSortIndicators(); return;
   }
   const {key,dir}=SORT, mul=dir==='asc'?1:-1;
@@ -2157,7 +1991,6 @@ function paintTable(){
     const label='<strong style="color:var(--off)">'+m.code+'</strong> <span style="color:var(--gray-2);font-size:10px">'+(m.name!==m.code?m.name:'')+'</span>';
     const thumbCell=m.thumb?'<img class="cr-thumb" src="'+escAttr(m.thumb)+'" loading="lazy" referrerpolicy="no-referrer" alt="" onerror="dotbImgFail(this)">':'<span class="cr-noimg">—</span>';
     const linkCell=m.permalink?'<a class="ig-link" href="'+escAttr(m.permalink)+'" target="_blank" rel="noopener" title="Abrir no Instagram">'+IG_SVG+'</a>':'<span style="color:var(--gray-2)">—</span>';
-    const roasClass=m.roas>=1?'roas-good':'roas-bad';
     return '<tr>'+
       '<td class="cr-thumb-cell">'+thumbCell+'</td>'+
       '<td class="cr-name" title="'+escAttr(m.name)+'">'+label+'</td>'+
@@ -2167,15 +2000,11 @@ function paintTable(){
       '<td>'+fmtP(m.ctr)+'</td>'+
       '<td>'+money2(m.cpc)+'</td>'+
       '<td>'+fmtN(m.vendas)+'</td>'+
-      '<td>'+money2(m.receita)+'</td>'+
-      '<td><span class="roas-badge '+roasClass+'">'+fmtR(m.roas)+'</span></td>'+
-      '<td>'+fmtP(m.conv)+'</td>'+
       '<td>'+linkCell+'</td>'+
     '</tr>';
   }).join('');
   const t=TABLE_TOTALS;
-  const totalRoasClass=t.roas>=1?'roas-good':'roas-bad';
-  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td>'+money2(t.receita)+'</td><td><span class="roas-badge '+totalRoasClass+'">'+fmtR(t.roas)+'</span></td><td>'+fmtP(t.conv)+'</td><td></td></tr>';
+  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td></td></tr>';
   updateSortIndicators();
 }
 // Atualiza as setinhas ▲▼ nos cabeçalhos
@@ -2314,10 +2143,6 @@ function initEvents(){
     document.getElementById('stApproved').checked=true;
     document.getElementById('stCompleted').checked=true;
     document.getElementById('stOther').checked=false;
-    CREATIVE_SALES_MODE='attributed';
-    const salesSwitch=document.getElementById('creativeSalesSwitch');
-    if(salesSwitch) salesSwitch.checked=false;
-    updateCreativeSalesSwitchUI();
     document.getElementById('campSearch').value='';
     document.getElementById('prodSearch').value='';
     document.querySelectorAll('#campList .dd-opt,#prodList .dd-opt').forEach(o=>o.style.display='');
@@ -2336,15 +2161,6 @@ function initEvents(){
     const el=document.getElementById(b.dataset.target); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); b.classList.add('active');
   }));
-  // Switch da fonte de vendas na tabela de criativos.
-  const creativeSalesSwitch=document.getElementById('creativeSalesSwitch');
-  if(creativeSalesSwitch){
-    creativeSalesSwitch.addEventListener('change',()=>{
-      CREATIVE_SALES_MODE=creativeSalesSwitch.checked?'crossed':'attributed';
-      render();
-    });
-  }
-  updateCreativeSalesSwitchUI();
   // Ordenação da tabela de criativos (clicar no cabeçalho)
   document.querySelectorAll('#table-sec th.sortable').forEach(th=>{
     th.addEventListener('click',()=>{
