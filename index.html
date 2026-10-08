@@ -511,6 +511,7 @@ body:not(.auth-pending) .login-screen{display:none;}
             <th class="sortable" data-sort="ctr">CTR <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="cpc">CPC <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="vendas">Vendas <span class="sort-caret"></span></th>
+            <th class="sortable" data-sort="cac" title="Investimento ÷ vendas">CAC <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="receita">Receita <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="roas">ROAS <span class="sort-caret"></span></th>
             <th class="sortable" data-sort="conv" title="Vendas ÷ visualizações de página">Tx de Conversão <span class="sort-caret"></span></th>
@@ -1995,7 +1996,7 @@ function renderChart(byDay){
 }
 // ═══ TABLE — criativos Meta Ads × fonte comercial selecionada ═══
 // Investimento, entrega e tráfego sempre vêm da Meta. O switch local alterna em conjunto
-// Vendas, Receita, ROAS e Tx de Conversão entre Meta Ads e Hotmart cruzada pelo SCK.
+// Vendas, CAC, Receita, ROAS e Tx de Conversão entre Meta Ads e Hotmart cruzada pelo SCK.
 function renderTable(meta,f){
   // Agrupa investimento/KPIs da Meta por CÓDIGO de criativo
   const byCode={};
@@ -2064,17 +2065,18 @@ function renderTable(meta,f){
     const cpc=m.clicks>0?m.invest/m.clicks:0;       // CPC = Investimento / Link Clicks
     const vendas=useHotmart?m.hotVendas:m.metaVendas;
     const receita=useHotmart?m.hotReceita:m.metaReceita;
+    const cac=vendas>0?m.invest/vendas:null;        // CAC = Investimento / Vendas da fonte escolhida (sem venda = sem CAC)
     const roas=m.invest>0?receita/m.invest:0;       // ROAS = Receita da fonte escolhida / Investimento
     const conv=m.pviews>0?vendas/m.pviews:0;        // mesma definição global: Vendas / Page Views
     return {code:m.code, name:[...m.names][0]||m.code, invest:m.invest, impr:m.impr, clicks:m.clicks,
-            pviews:m.pviews, ctr, cpc, vendas, receita, roas, conv, permalink:m.permalink, thumb:m.thumb};
+            pviews:m.pviews, ctr, cpc, vendas, cac, receita, roas, conv, permalink:m.permalink, thumb:m.thumb};
   });
   // Totais (independentes da ordenação)
   let tI=0,tImp=0,tC=0,tPV=0,tV=0,tR=0;
   TABLE_ROWS.forEach(m=>{ tI+=m.invest;tImp+=m.impr;tC+=m.clicks;tPV+=m.pviews;tV+=m.vendas;tR+=m.receita; });
   TABLE_TOTALS={
     invest:tI,impr:tImp,clicks:tC,ctr:tImp>0?tC/tImp:0,cpc:tC>0?tI/tC:0,
-    vendas:tV,receita:tR,roas:tI>0?tR/tI:0,conv:tPV>0?tV/tPV:0
+    vendas:tV,cac:tV>0?tI/tV:null,receita:tR,roas:tI>0?tR/tI:0,conv:tPV>0?tV/tPV:0
   };
   updateTableSourceUI();
   paintTable();
@@ -2084,15 +2086,15 @@ function paintTable(){
   const body=document.getElementById('tblCreativos');
   const foot=document.getElementById('tblFoot');
   if(!TABLE_ROWS.length){
-    body.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
+    body.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhum dado no período / seleção</td></tr>';
     foot.innerHTML=''; updateSortIndicators(); return;
   }
   const {key,dir}=SORT, mul=dir==='asc'?1:-1;
   const sorted=[...TABLE_ROWS].sort((a,b)=>{
     if(key==='code'||key==='name'){ return mul*String(a[key]).localeCompare(String(b[key]),'pt-BR'); }
     let x=a[key], y=b[key];
-    x=(x===null||x===undefined)?-Infinity:x;
-    y=(y===null||y===undefined)?-Infinity:y;
+    const xn=(x===null||x===undefined), yn=(y===null||y===undefined);
+    if(xn||yn) return xn&&yn?0:(xn?1:-1);   // sem valor (ex.: CAC sem venda) fica sempre no fim
     return mul*(x-y);
   });
   body.innerHTML=sorted.map(m=>{
@@ -2108,6 +2110,7 @@ function paintTable(){
       '<td>'+fmtP(m.ctr)+'</td>'+
       '<td>'+money2(m.cpc)+'</td>'+
       '<td>'+fmtN(m.vendas)+'</td>'+
+      '<td>'+(m.cac===null?'—':money2(m.cac))+'</td>'+
       '<td>'+money2(m.receita)+'</td>'+
       '<td>'+fmtR(m.roas)+'</td>'+
       '<td>'+fmtP(m.conv)+'</td>'+
@@ -2115,7 +2118,7 @@ function paintTable(){
     '</tr>';
   }).join('');
   const t=TABLE_TOTALS;
-  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td>'+money2(t.receita)+'</td><td>'+fmtR(t.roas)+'</td><td>'+fmtP(t.conv)+'</td><td></td></tr>';
+  foot.innerHTML='<tr><td></td><td class="cr-name">Total</td><td>'+money0(t.invest)+'</td><td>'+fmtN(t.impr)+'</td><td>'+fmtN(t.clicks)+'</td><td>'+fmtP(t.ctr)+'</td><td>'+money2(t.cpc)+'</td><td>'+fmtN(t.vendas)+'</td><td>'+(t.cac===null?'—':money2(t.cac))+'</td><td>'+money2(t.receita)+'</td><td>'+fmtR(t.roas)+'</td><td>'+fmtP(t.conv)+'</td><td></td></tr>';
   updateSortIndicators();
 }
 function updateTableSourceUI(){
