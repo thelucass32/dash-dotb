@@ -1528,26 +1528,39 @@ function initFilters(){
   RAW.hotmart.forEach(r=>{ const p=COLS.hotProd ? r[COLS.hotProd] : ''; if(p) prodSet.add(p); });
   RAW.hotmartFull.forEach(r=>{ const p=COLS.hotFullProd ? r[COLS.hotFullProd] : ''; if(p) prodSet.add(p); });
   const prods=[...prodSet].sort();
-  buildDropdown('prod',prods);
-  buildOfferDropdown();
+  buildDropdown('prod',prods,{onChange:()=>buildOfferDropdown()});
+  buildOfferDropdown(true);
 }
-// Caixa de ofertas: uma linha por Offer Code, rotulada com o produto. As ofertas de
-// OFFER_DEFAULT_OFF já entram desmarcadas.
-function buildOfferDropdown(){
-  const prodByOffer={};
+// Caixa de ofertas: uma linha por Offer Code, rotulada com o produto. É condicional ao
+// filtro de produto: só lista as ofertas dos produtos marcados. A marcação de cada oferta
+// (OFFER_STATE) sobrevive à troca de produto; as de OFFER_DEFAULT_OFF começam desmarcadas.
+let OFFER_STATE={};
+function buildOfferDropdown(reset){
+  if(reset) OFFER_STATE={};
+  else document.querySelectorAll('#offerList input').forEach(i=>{ OFFER_STATE[i.value]=i.checked; });
+  const prodsByOffer={}, nameByOffer={};
   const collect=(rows,cOffer,cProd)=>{
     if(!cOffer) return;
     rows.forEach(r=>{
       const o=offerKey(r[cOffer]);
-      if(!(o in prodByOffer)) prodByOffer[o]=cProd ? String(r[cProd]||'').trim() : '';
+      const p=cProd ? String(r[cProd]||'') : '';
+      (prodsByOffer[o]=prodsByOffer[o]||new Set()).add(p);
+      if(!(o in nameByOffer)) nameByOffer[o]=p.trim();
     });
   };
   collect(RAW.hotmart,COLS.hotOffer,COLS.hotProd);
   collect(RAW.hotmartFull,COLS.hotFullOffer,COLS.hotFullProd);
-  const offers=Object.keys(prodByOffer).sort((a,b)=>prodByOffer[a].localeCompare(prodByOffer[b],'pt-BR')||a.localeCompare(b));
+  const selProds=new Set([...document.querySelectorAll('#prodList input:checked')].map(i=>i.value));
+  const hasProdList=document.querySelectorAll('#prodList input').length>0;
+  const offers=Object.keys(prodsByOffer)
+    .filter(o=>!hasProdList || [...prodsByOffer[o]].some(p=>selProds.has(p)))
+    .sort((a,b)=>nameByOffer[a].localeCompare(nameByOffer[b],'pt-BR')||a.localeCompare(b));
   const labels={};
-  offers.forEach(o=>{ labels[o]=prodByOffer[o] ? o+' · '+prodByOffer[o] : o; });
-  buildDropdown('offer',offers,{labels,unchecked:OFFER_DEFAULT_OFF});
+  offers.forEach(o=>{ labels[o]=nameByOffer[o] ? o+' · '+nameByOffer[o] : o; });
+  const unchecked=offers.filter(o=> o in OFFER_STATE ? !OFFER_STATE[o] : OFFER_DEFAULT_OFF.includes(o));
+  const search=document.getElementById('offerSearch');
+  if(search) search.value='';
+  buildDropdown('offer',offers,{labels,unchecked});
 }
 function buildDropdown(prefix,items,opts){
   const labels=(opts&&opts.labels)||{}, unchecked=(opts&&opts.unchecked)||[];
@@ -1565,9 +1578,10 @@ function buildDropdown(prefix,items,opts){
     const q=e.target.value.toLowerCase();
     list.querySelectorAll('.dd-opt').forEach(o=>{ o.style.display=o.dataset.name.includes(q)?'':'none'; });
   };
-  document.getElementById(prefix+'SelAll').onclick=()=>{ list.querySelectorAll('input').forEach(i=>i.checked=true); ddLabel(prefix,items.length); };
-  document.getElementById(prefix+'SelNone').onclick=()=>{ list.querySelectorAll('input').forEach(i=>i.checked=false); ddLabel(prefix,items.length); };
-  list.onchange=()=>ddLabel(prefix,items.length);
+  const changed=()=>{ ddLabel(prefix,items.length); if(opts&&opts.onChange) opts.onChange(); };
+  document.getElementById(prefix+'SelAll').onclick=()=>{ list.querySelectorAll('input').forEach(i=>i.checked=true); changed(); };
+  document.getElementById(prefix+'SelNone').onclick=()=>{ list.querySelectorAll('input').forEach(i=>i.checked=false); changed(); };
+  list.onchange=changed;
 }
 // Reconstrói a caixa de campanhas conforme o status selecionado (ativas/pausadas).
 function rebuildCampDropdown(){
@@ -2311,8 +2325,7 @@ function initEvents(){
     rebuildCampDropdown();
     document.querySelectorAll('#campList input,#prodList input').forEach(i=>i.checked=true);
     // Ofertas voltam ao padrão (OFFER_DEFAULT_OFF desmarcadas)
-    document.getElementById('offerSearch').value='';
-    buildOfferDropdown();
+    buildOfferDropdown(true);
     document.getElementById('stApproved').checked=true;
     document.getElementById('stCompleted').checked=true;
     document.getElementById('stOther').checked=false;
