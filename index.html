@@ -392,6 +392,17 @@ body:not(.auth-pending) .login-screen{display:none;}
         </div>
       </div>
       <div class="fg">
+        <div class="flbl">Oferta (Hotmart)</div>
+        <div class="dd-wrap">
+          <button class="dd-btn" id="offerBtn"><span id="offerBtnLbl">Todas</span><span class="dd-caret">▼</span></button>
+          <div class="dd-panel" id="offerDD">
+            <input class="dd-search" id="offerSearch" type="text" placeholder="Buscar oferta ou produto…" autocomplete="off">
+            <div class="dd-actions"><button class="dd-act" id="offerSelAll">Todas</button><button class="dd-act" id="offerSelNone">Limpar</button></div>
+            <div class="dd-list" id="offerList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="fg">
         <div class="flbl">Status Transação</div>
         <div class="status-checks">
           <label class="sc-item"><input type="checkbox" id="stApproved" checked> approved</label>
@@ -593,6 +604,7 @@ const COL_OVERRIDE = {
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
   hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
+  hotOffer:'', hotFullOffer:'', // código da oferta (Sales History Offer Code) — filtro "Oferta (Hotmart)"
   hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
   hotRecurrency:'Sales History Recurrency Number', // trava a QTD de vendas na coluna correta da aba Hotmart
   hotPaymentMode:'Sales History Offer Payment Mode', // assinatura usa SUBSCRIPTION e não segue a regra de Recurrency
@@ -607,6 +619,10 @@ const PHM_PRODUCTS = {
   phm:  ['plano head de marketing','head de marketing','plano head','head mkt','phm'],
   full: ['full stack marketing','full stack','fullstack','formação full','formacao full','full-stack']
 };
+// Ofertas (Sales History Offer Code) que já abrem DESMARCADAS no filtro "Oferta (Hotmart)".
+const OFFER_DEFAULT_OFF = ['8b2sprx3']; // FSM
+const OFFER_EMPTY = '(sem oferta)';
+function offerKey(v){ return String(v||'').trim() || OFFER_EMPTY; }
 // ═══ CSV ═══
 function parseCSV(text){
   const rows=[]; let row=[],cur='',inQ=false;
@@ -1135,6 +1151,10 @@ function detectColumns(){
   // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
+  // Código da oferta — nunca confundir com "Offer Payment Mode".
+  const offerPatterns=[/^sales history offer code$/,/sales.?history.*offer.*code/,/offer.?code/,/c[oó]digo.*oferta/,/^oferta$/,/^offer$/];
+  COLS.hotOffer     = colFind(hh,offerPatterns);
+  COLS.hotFullOffer = colFind(fh,offerPatterns);
   COLS.hotRecurrency = colFind(hh,[
     /^sales history recurrency number$/,
     /sales.?history.*recurrency.*number/,
@@ -1509,14 +1529,35 @@ function initFilters(){
   RAW.hotmartFull.forEach(r=>{ const p=COLS.hotFullProd ? r[COLS.hotFullProd] : ''; if(p) prodSet.add(p); });
   const prods=[...prodSet].sort();
   buildDropdown('prod',prods);
+  buildOfferDropdown();
 }
-function buildDropdown(prefix,items){
+// Caixa de ofertas: uma linha por Offer Code, rotulada com o produto. As ofertas de
+// OFFER_DEFAULT_OFF já entram desmarcadas.
+function buildOfferDropdown(){
+  const prodByOffer={};
+  const collect=(rows,cOffer,cProd)=>{
+    if(!cOffer) return;
+    rows.forEach(r=>{
+      const o=offerKey(r[cOffer]);
+      if(!(o in prodByOffer)) prodByOffer[o]=cProd ? String(r[cProd]||'').trim() : '';
+    });
+  };
+  collect(RAW.hotmart,COLS.hotOffer,COLS.hotProd);
+  collect(RAW.hotmartFull,COLS.hotFullOffer,COLS.hotFullProd);
+  const offers=Object.keys(prodByOffer).sort((a,b)=>prodByOffer[a].localeCompare(prodByOffer[b],'pt-BR')||a.localeCompare(b));
+  const labels={};
+  offers.forEach(o=>{ labels[o]=prodByOffer[o] ? o+' · '+prodByOffer[o] : o; });
+  buildDropdown('offer',offers,{labels,unchecked:OFFER_DEFAULT_OFF});
+}
+function buildDropdown(prefix,items,opts){
+  const labels=(opts&&opts.labels)||{}, unchecked=(opts&&opts.unchecked)||[];
   const list=document.getElementById(prefix+'List');
   list.innerHTML='';
   items.forEach(it=>{
+    const text=labels[it]||it;
     const l=document.createElement('label');
-    l.className='dd-opt'; l.dataset.name=it.toLowerCase();
-    l.innerHTML='<input type="checkbox" value="'+it.replace(/"/g,'&quot;')+'" checked><span title="'+it.replace(/"/g,'&quot;')+'">'+it+'</span>';
+    l.className='dd-opt'; l.dataset.name=text.toLowerCase();
+    l.innerHTML='<input type="checkbox" value="'+it.replace(/"/g,'&quot;')+'"'+(unchecked.includes(it)?'':' checked')+'><span title="'+text.replace(/"/g,'&quot;')+'">'+text+'</span>';
     list.appendChild(l);
   });
   ddLabel(prefix,items.length);
@@ -1544,7 +1585,7 @@ function ddLabel(prefix,total){
 }
 // ═══ DROPDOWN OPEN/CLOSE ═══
 function initDropdowns(){
-  [['periodBtn','periodDD'],['campBtn','campDD'],['prodBtn','prodDD']].forEach(([b,d])=>{
+  [['periodBtn','periodDD'],['campBtn','campDD'],['prodBtn','prodDD'],['offerBtn','offerDD']].forEach(([b,d])=>{
     document.getElementById(b).addEventListener('click',e=>{
       e.stopPropagation();
       const panel=document.getElementById(d), open=panel.classList.contains('open');
@@ -1579,12 +1620,14 @@ function getFilters(){
   const allCamps=camps.length===document.querySelectorAll('#campList input').length;
   const prods=[...document.querySelectorAll('#prodList input:checked')].map(i=>i.value);
   const allProds=prods.length===document.querySelectorAll('#prodList input').length;
+  const offers=[...document.querySelectorAll('#offerList input:checked')].map(i=>i.value);
+  const allOffers=offers.length===document.querySelectorAll('#offerList input').length;
   const campStatuses=getSelectedCampStatuses();
   const statuses=[];
   if(document.getElementById('stApproved').checked) statuses.push('approved');
   if(document.getElementById('stCompleted').checked) statuses.push('completed');
   if(document.getElementById('stOther').checked) statuses.push('__other__');
-  return {from,to,camps:allCamps?null:camps,prods:allProds?null:prods,campStatuses,statuses};
+  return {from,to,camps:allCamps?null:camps,prods:allProds?null:prods,offers:allOffers?null:offers,campStatuses,statuses};
 }
 // ═══ FILTER DATA ═══
 function filterMeta(f){
@@ -1601,6 +1644,7 @@ function filterMeta(f){
 }
 function hotPassCommonFilters(r,f){
   if(f.prods && !f.prods.includes(r[COLS.hotProd])) return false;
+  if(f.offers && COLS.hotOffer && !f.offers.includes(offerKey(r[COLS.hotOffer]))) return false;
   const st=hotStatusGroup(r[COLS.hotStatus]);
   return f.statuses.some(s=> s==='__other__' ? !['approved','completed'].includes(st) : st===s);
 }
@@ -1639,14 +1683,14 @@ function getSourceCols(source){
     return {
       name:'Hotmart-PHM', date:COLS.hotFullDate, dateBR:COLS.hotFullDateBR, prod:COLS.hotFullProd,
       status:COLS.hotFullStatus, value:COLS.hotFullValue, email:COLS.hotFullEmail,
-      phone:COLS.hotFullPhone, txn:COLS.hotFullTxnId, buyer:COLS.hotFullBuyer,
+      phone:COLS.hotFullPhone, txn:COLS.hotFullTxnId, buyer:COLS.hotFullBuyer, offer:COLS.hotFullOffer,
       recurrency:COLS.hotFullRecurrency, paymentMode:COLS.hotFullPaymentMode
     };
   }
   return {
     name:'Hotmart', date:COLS.hotDate, dateBR:COLS.hotDateBR, prod:COLS.hotProd,
     status:COLS.hotStatus, value:COLS.hotValue, email:COLS.hotEmail,
-    phone:COLS.hotPhone, txn:COLS.hotTxnId, buyer:COLS.hotBuyer,
+    phone:COLS.hotPhone, txn:COLS.hotTxnId, buyer:COLS.hotBuyer, offer:COLS.hotOffer,
     recurrency:COLS.hotRecurrency, paymentMode:COLS.hotPaymentMode
   };
 }
@@ -1690,7 +1734,8 @@ function sourceSaleFields(r, source){
   const status=hotStatusGroup(c.status ? r[c.status] : '');
   const recurrency=sourceRecurrencyValue(r,c);
   const paymentMode=sourcePaymentModeValue(r,c);
-  return {raw:r, source, sourceName:c.name, date, product, email, phone, buyer, txn, value, status, recurrency, paymentMode};
+  const offer=c.offer ? offerKey(r[c.offer]) : '';
+  return {raw:r, source, sourceName:c.name, date, product, offer, email, phone, buyer, txn, value, status, recurrency, paymentMode};
 }
 function productSourceKey(name){
   // Normaliza o nome do produto para comparar a mesma oferta entre fontes diferentes.
@@ -1734,6 +1779,7 @@ function isUniqueSourceSale(sale){
 function salePassFilters(sale,f){
   if(!sale.date || sale.date<f.from || sale.date>f.to) return false;
   if(f.prods && !f.prods.includes(sale.product)) return false;
+  if(f.offers && sale.offer && !f.offers.includes(sale.offer)) return false;
   return f.statuses.some(st=> st==='__other__' ? !['approved','completed'].includes(sale.status) : sale.status===st);
 }
 function filterGlobalHotmartSales(f){
@@ -2264,6 +2310,9 @@ function initEvents(){
     document.getElementById('scCampPaused').checked=false;
     rebuildCampDropdown();
     document.querySelectorAll('#campList input,#prodList input').forEach(i=>i.checked=true);
+    // Ofertas voltam ao padrão (OFFER_DEFAULT_OFF desmarcadas)
+    document.getElementById('offerSearch').value='';
+    buildOfferDropdown();
     document.getElementById('stApproved').checked=true;
     document.getElementById('stCompleted').checked=true;
     document.getElementById('stOther').checked=false;
