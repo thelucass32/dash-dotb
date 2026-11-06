@@ -192,6 +192,19 @@ canvas{width:100%!important;}
 #prod-breakdown-sec .tbl th:first-child,#prod-breakdown-sec .tbl td:first-child{text-align:left;padding-left:16px;}
 #prod-breakdown-sec .tbl td:last-child{text-align:left;font-family:var(--grotesk);font-size:11px;}
 #prod-breakdown-sec .tbl th:last-child{text-align:left;}
+/* Tabela "Origens de vendas" — canal clicável abre o detalhe */
+#origin-sec .tbl{min-width:760px;}
+#origin-sec .tbl th:first-child,#origin-sec .tbl td:first-child{text-align:left;padding-left:16px;}
+#origin-sec tr.or-canal{cursor:pointer;}
+#origin-sec tr.or-canal td.cr-name{font-weight:500;}
+#origin-sec .or-caret{display:inline-block;width:12px;color:var(--gray-2);transition:transform .15s;}
+#origin-sec tr.or-canal.open .or-caret{transform:rotate(90deg);color:var(--accent);}
+#origin-sec tr.or-det td{background:var(--bg-2);color:var(--gray);font-size:11px;}
+#origin-sec tr.or-det td.cr-name{padding-left:38px;font-size:11.5px;color:var(--gray);max-width:360px;}
+#origin-sec .or-share{display:inline-flex;align-items:center;gap:10px;justify-content:flex-end;}
+#origin-sec .or-bar{width:90px;height:5px;border-radius:3px;background:var(--bg-3);overflow:hidden;}
+#origin-sec .or-bar i{display:block;height:100%;background:var(--accent);border-radius:3px;}
+#origin-sec tr.or-none td.cr-name{color:var(--gray);}
 .empty{padding:48px;text-align:center;color:var(--gray-2);font-size:13px;}
 .empty .big{font-family:var(--display);font-size:40px;color:var(--bg-3);margin-bottom:12px;}
 ::-webkit-scrollbar{width:5px;height:6px;}
@@ -306,6 +319,7 @@ body:not(.auth-pending) .login-screen{display:none;}
       <button class="nav-item" data-target="funnel-meta-sec"><span class="nav-dot"></span>Funil Meta Ads</button>
       <button class="nav-item" data-target="table-sec"><span class="nav-dot"></span>Criativos</button>
       <button class="nav-item" data-target="prod-breakdown-sec"><span class="nav-dot"></span>Vendas por produto</button>
+      <button class="nav-item" data-target="origin-sec"><span class="nav-dot"></span>Origens de vendas</button>
       <button class="nav-item" data-target="funnel-phm-sec"><span class="nav-dot"></span>Funil PHM</button>
     </nav>
     <div class="sb-foot">
@@ -549,6 +563,23 @@ body:not(.auth-pending) .login-screen{display:none;}
         </table>
       </div>
     </div>
+    <!-- ORIGENS DE VENDAS -->
+    <div class="section" id="origin-sec">
+      <div class="section-head"><h2 class="section-title">Origens <em>de vendas</em></h2><span class="section-tag">SCK da Hotmart (SRC se vazio) · clique no canal para ver o detalhe</span></div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr>
+            <th>Canal / origem</th>
+            <th>Vendas</th>
+            <th>% das vendas</th>
+            <th>Faturamento (todas)</th>
+            <th>% do faturamento</th>
+          </tr></thead>
+          <tbody id="tblOrigin"></tbody>
+          <tfoot id="tblOriginFoot"></tfoot>
+        </table>
+      </div>
+    </div>
     <!-- FUNNEL PHM -->
     <div class="section" id="funnel-phm-sec">
       <div class="section-head"><h2 class="section-title">Funil <em>PHM</em></h2><span class="section-tag">Lead PHM → Plano Head de Marketing → Full Stack Marketing · cruzamento por e-mail (approved/completed)</span></div>
@@ -603,7 +634,7 @@ const COL_OVERRIDE = {
   metaPermalink:'', metaThumb:'',
   hotDate:'',       // data da compra original (Purchase Order Date) — usada para CONTAGEM de vendas
   hotDateBR:'',     // data de recebimento/transação (Data BR) — usada para FATURAMENTO
-  hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'',
+  hotProd:'', hotStatus:'', hotValue:'', hotEmail:'', hotPhone:'', hotCreative:'', hotSrc:'',
   hotOffer:'', hotFullOffer:'', // código da oferta (Sales History Offer Code) — filtro "Oferta (Hotmart)"
   hotTxnId:'', hotBuyer:'',  // NOVOS: ID da transação (PRIORIDADE de dedupe) e nome do comprador
   hotRecurrency:'Sales History Recurrency Number', // trava a QTD de vendas na coluna correta da aba Hotmart
@@ -1151,6 +1182,8 @@ function detectColumns(){
   // Buyer Name — fallback de identidade quando não há email/telefone.
   COLS.hotBuyer    = colFind(hh,[/^buyer name$/,/sales.?history.?buyer.?name/,/buyer.?name/,/nome.*comprador/]);
   COLS.hotCreative = colFind(hh,[/sales history tracking source sck/,/criativo/,/creative/,/^sck$/,/utm.?content/,/c[oó]digo.*criativo/,/ad.?code/]);
+  // SRC da Hotmart — reserva da origem quando o SCK vem vazio.
+  COLS.hotSrc      = colFind(hh,[/^sales history tracking source$/,/^src$/,/tracking.?source$/]);
   // Código da oferta — nunca confundir com "Offer Payment Mode".
   const offerPatterns=[/^sales history offer code$/,/sales.?history.*offer.*code/,/offer.?code/,/c[oó]digo.*oferta/,/^oferta$/,/^offer$/];
   COLS.hotOffer     = colFind(hh,offerPatterns);
@@ -1911,6 +1944,145 @@ function renderProductBreakdown(f){
   console.log('%c[dotb] Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto:','color:#4dffa7;font-weight:bold');
   console.table(rows.map(p=>({Produto:p.produto,'Vendas (Recurrency 1/vazio)':p.vendas,'Faturamento':money2(p.faturamento),'Parcelas seguintes':p.parcelas,'Fonte(s)':p.fontes})));
 }
+// ═══ ORIGENS DE VENDAS ═══
+// A origem vem do SCK da Hotmart (a LP repassa o utm_campaign para sck/src no checkout).
+// Quando o SCK vem vazio ou com o placeholder "[field id=...]" usa o SRC.
+// Formato dotb-{produto}-{objetivo}-{fonte}-{posicionamento}-{conjunto}-{cpc|org}-{temperatura}-{ad}.
+// Mesmas regras de Vendas/Faturamento da seção "Vendas por produto", então os totais batem.
+const ORIGIN_NONE = 'Sem origem';
+const ORIGIN_SOURCES = {
+  igfb:'Meta Ads', googleads:'Google Ads', ig:'Instagram orgânico', whats:'WhatsApp', yt:'YouTube',
+  newsletter:'E-mail / newsletter', substack:'E-mail / newsletter', email:'E-mail / newsletter',
+  hotmartclub:'Hotmart / área de membros', fsm:'Hotmart / área de membros'
+};
+const ORIGIN_OBJECTIVES = {vend:'venda', cap:'captação', assessment:'assessment'};
+const ORIGIN_PLACEMENTS = {feedst:'feed/stories', descricao:'descrição', areamembros:'área de membros', bio:'bio', manychat:'manychat', disparo:'disparo', search:'search', curso:'curso', email:'e-mail'};
+const ORIGIN_HOTMART = {product_page:'página do produto', site:'site Hotmart', club:'Hotmart Club', mem:'área de membros'};
+let ORIGIN_OPEN = new Set();       // canais expandidos na tabela de origens
+function isValidOrigin(v){
+  const s=String(v||'').trim();
+  return !!s && !s.startsWith('[field');
+}
+function rawOriginOf(r){
+  const sck=COLS.hotCreative ? r[COLS.hotCreative] : '';
+  if(isValidOrigin(sck)) return String(sck).trim();
+  const src=COLS.hotSrc ? r[COLS.hotSrc] : '';
+  if(isValidOrigin(src)) return String(src).trim();
+  return '';
+}
+function classifyOrigin(v, missingReason){
+  if(!v) return {canal:ORIGIN_NONE, detalhe:missingReason||'SCK e SRC vazios'};
+  const low=v.toLowerCase();
+  const tokens=low.split('-').filter(Boolean);
+  if(tokens[0]==='dotb'){
+    let objIdx=tokens.findIndex((t,i)=>i>=2 && ORIGIN_OBJECTIVES[t]);
+    const srcIdx=tokens.findIndex((t,i)=>i>=Math.max(2,objIdx+1) && ORIGIN_SOURCES[t]);
+    if(srcIdx<0) return {canal:'Link sem padrão dotb', detalhe:v};
+    if(objIdx<0 || objIdx>srcIdx) objIdx=srcIdx;
+    const prod=tokens.slice(1,objIdx).join('-').toUpperCase() || '?';
+    const obj=ORIGIN_OBJECTIVES[tokens[objIdx]]||'';
+    const src=tokens[srcIdx];
+    const plc=tokens[srcIdx+1] && tokens[srcIdx+1]!=='x' ? (ORIGIN_PLACEMENTS[tokens[srcIdx+1]]||tokens[srcIdx+1]) : '';
+    const temp=tokens.includes('frio') ? 'frio' : tokens.includes('quente') ? 'quente' : '';
+    const paid=tokens.includes('cpc');
+    let canal=ORIGIN_SOURCES[src];
+    if(src==='igfb' && !paid) canal='Instagram orgânico';
+    if(src==='googleads' && !paid) canal='Google orgânico';
+    let detalhe;
+    if(canal==='Meta Ads') detalhe=[prod,obj,temp].filter(Boolean).join(' · ');
+    else if(canal==='Google Ads') detalhe=[prod,plc].filter(Boolean).join(' · ');
+    else detalhe=[plc||src,prod].filter(Boolean).join(' · ');
+    return {canal, detalhe};
+  }
+  if(low.startsWith('hotmart_')){
+    const rest=low.slice(8);
+    const key=Object.keys(ORIGIN_HOTMART).find(k=>rest.startsWith(k));
+    return {canal:'Hotmart / área de membros', detalhe:key?ORIGIN_HOTMART[key]:v};
+  }
+  if(/stories|destaque/.test(low)) return {canal:'Instagram orgânico', detalhe:v};
+  return {canal:'Link sem padrão dotb', detalhe:v};
+}
+function originBreakdown(f){
+  const limpoProductKeys=getLimpoProductKeys();
+  // Parcelas seguintes costumam vir sem SCK. Herdam a origem de outra linha
+  // do mesmo comprador + produto (o Transaction ID muda a cada parcela).
+  const inherited=new Map();
+  const buyerProdKey=sale=>(sale.email||sale.phone||sale.buyer) ? (sale.email||sale.phone||sale.buyer)+'|'+productSourceKey(sale.product) : '';
+  [['limpo',RAW.hotmart],['full',RAW.hotmartFull]].forEach(([source,rows])=>rows.forEach(r=>{
+    const o=rawOriginOf(r); if(!o) return;
+    const k=buyerProdKey(sourceSaleFields(r,source));
+    if(k && !inherited.has(k)) inherited.set(k,o);
+  }));
+  const byCanal={};
+  let totVendas=new Set(), totFat=0;
+  function consume(r, source){
+    const sale=sourceSaleFields(r, source);
+    if(!salePassFilters(sale, f)) return;
+    if(source==='full' && limpoProductKeys.has(productSourceKey(sale.product))) return;
+    let o=rawOriginOf(r);
+    if(!o){ const k=buyerProdKey(sale); if(k && inherited.has(k)) o=inherited.get(k); }
+    const sck=COLS.hotCreative ? String(r[COLS.hotCreative]||'').trim() : '';
+    const {canal, detalhe}=classifyOrigin(o, sck.startsWith('[field') ? 'SCK não preenchido no checkout' : 'SCK e SRC vazios');
+    const c=byCanal[canal]=byCanal[canal]||{canal, saleKeys:new Set(), faturamento:0, det:{}};
+    const d=c.det[detalhe]=c.det[detalhe]||{detalhe, saleKeys:new Set(), faturamento:0, exemplos:new Set()};
+    c.faturamento+=sale.value; d.faturamento+=sale.value; totFat+=sale.value;
+    if(o && d.exemplos.size<5) d.exemplos.add(o);
+    if(isUniqueSourceSale(sale)){
+      sale.key=sourceSaleKey(sale);
+      if(sale.key){ c.saleKeys.add(sale.key); d.saleKeys.add(sale.key); totVendas.add(sale.key); }
+    }
+  }
+  RAW.hotmart.forEach(r=>consume(r,'limpo'));
+  RAW.hotmartFull.forEach(r=>consume(r,'full'));
+  const sortRows=(a,b)=>b.vendas-a.vendas || b.faturamento-a.faturamento;
+  const canais=Object.values(byCanal).map(c=>({
+    canal:c.canal, vendas:c.saleKeys.size, faturamento:c.faturamento,
+    det:Object.values(c.det).map(d=>({detalhe:d.detalhe, vendas:d.saleKeys.size, faturamento:d.faturamento, exemplos:[...d.exemplos]}))
+      .filter(d=>d.vendas>0 || d.faturamento>0).sort(sortRows)
+  })).filter(c=>c.vendas>0 || c.faturamento>0)
+    .sort((a,b)=> (a.canal===ORIGIN_NONE)-(b.canal===ORIGIN_NONE) || sortRows(a,b));
+  return {canais, totalVendas:totVendas.size, totalFat:totFat};
+}
+function originShareCell(part,total){
+  const p=total ? part/total : 0;
+  return '<td><span class="or-share">'+fmtP(p)+'<span class="or-bar"><i style="width:'+(p*100).toFixed(1)+'%"></i></span></span></td>';
+}
+function renderOrigins(f){
+  const body=document.getElementById('tblOrigin');
+  const foot=document.getElementById('tblOriginFoot');
+  if(!body) return;
+  const {canais,totalVendas,totalFat}=originBreakdown(f);
+  if(!canais.length){
+    body.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--gray-2);padding:32px;">Nenhuma venda no período / seleção</td></tr>';
+    if(foot) foot.innerHTML=''; return;
+  }
+  body.innerHTML=canais.map(c=>{
+    const open=ORIGIN_OPEN.has(c.canal);
+    const head='<tr class="or-canal'+(open?' open':'')+(c.canal===ORIGIN_NONE?' or-none':'')+'" data-canal="'+escAttr(c.canal)+'">'+
+      '<td class="cr-name"><span class="or-caret">▸</span> '+c.canal+'</td>'+
+      '<td>'+fmtN(c.vendas)+'</td>'+originShareCell(c.vendas,totalVendas)+
+      '<td>'+money2(c.faturamento)+'</td>'+originShareCell(c.faturamento,totalFat)+
+    '</tr>';
+    if(!open) return head;
+    return head+c.det.map(d=>(
+      '<tr class="or-det">'+
+        '<td class="cr-name" title="'+escAttr(d.exemplos.join('\n')||d.detalhe)+'">'+d.detalhe+'</td>'+
+        '<td>'+fmtN(d.vendas)+'</td>'+
+        '<td>'+fmtP(totalVendas?d.vendas/totalVendas:0)+'</td>'+
+        '<td>'+money2(d.faturamento)+'</td>'+
+        '<td>'+fmtP(totalFat?d.faturamento/totalFat:0)+'</td>'+
+      '</tr>'
+    )).join('');
+  }).join('');
+  if(foot) foot.innerHTML='<tr><td class="cr-name">Total</td><td>'+fmtN(totalVendas)+'</td><td>100,00 %</td><td>'+money2(totalFat)+'</td><td>100,00 %</td></tr>';
+  body.querySelectorAll('tr.or-canal').forEach(tr=>tr.addEventListener('click',()=>{
+    const k=tr.dataset.canal;
+    if(ORIGIN_OPEN.has(k)) ORIGIN_OPEN.delete(k); else ORIGIN_OPEN.add(k);
+    renderOrigins(getFilters());
+  }));
+  console.log('%c[dotb] Origens de vendas (SCK/SRC Hotmart):','color:#4dffa7;font-weight:bold');
+  console.table(canais.map(c=>({Canal:c.canal,Vendas:c.vendas,Faturamento:money2(c.faturamento)})));
+}
 // ═══ RENDER ═══
 function render(){
   if(!RAW.meta.length && !RAW.hotmart.length){ return; }
@@ -2025,6 +2197,8 @@ function render(){
   renderTable(meta,f);
   // Vendas (Recurrency 1/vazio) × Faturamento (todas) por produto
   renderProductBreakdown(f);
+  // Origens de vendas (SCK/SRC da Hotmart agrupado por canal)
+  renderOrigins(f);
   // Funil PHM
   renderPHM();
 }
