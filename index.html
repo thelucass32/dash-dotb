@@ -145,18 +145,6 @@ canvas{width:100%!important;}
 .ig-link{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--bg-3);border:1px solid var(--line);color:var(--blue);text-decoration:none;transition:all .15s;}
 .ig-link:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--off);}
 .ig-link svg{width:15px;height:15px;}
-/* FUNNEL PHM */
-.phm-funnel{display:flex;flex-direction:column;align-items:center;gap:0;padding:10px 0;}
-.phm-step{width:100%;display:flex;align-items:center;justify-content:center;gap:0;}
-.phm-side{width:150px;flex-shrink:0;font-size:10px;color:var(--gray-2);}
-.phm-side.l{text-align:right;padding-right:18px;}
-.phm-side.r{text-align:left;padding-left:18px;}
-.phm-rate{font-family:var(--display);font-size:16px;color:var(--green);}
-.phm-bar-wrap{flex:1;display:flex;justify-content:center;max-width:560px;}
-.phm-bar{height:74px;display:flex;align-items:center;justify-content:center;border-radius:var(--r15);transition:width .5s ease;min-width:160px;}
-.phm-bar-lbl{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.55);}
-.phm-bar-num{font-family:var(--display);font-size:25px;color:#fff;margin-top:2px;}
-.phm-arrow{display:flex;justify-content:center;padding:7px 0;color:var(--gray-2);}
 /* TABLE */
 .tbl-wrap{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--r15);overflow:hidden;overflow-x:auto;}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:920px;}
@@ -216,29 +204,8 @@ canvas{width:100%!important;}
   .kpi-grid{grid-template-columns:repeat(2,1fr);}
   .funnel-grid{grid-template-columns:1fr;}
   .side-rates{flex-direction:row;flex-wrap:wrap;padding:16px 0;}
-  .phm-side{display:none;}
 }
-/* LOGIN */
-body.auth-pending{overflow:hidden;}
-body.auth-pending .shell{visibility:hidden;pointer-events:none;}
-.login-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse 760px 420px at 75% 0%,rgba(137,204,114,.16),transparent 62%),linear-gradient(135deg,#0d0d0b,#181815 52%,#10110f);}
-body:not(.auth-pending) .login-screen{display:none;}
-.login-card{width:min(420px,100%);background:rgba(28,28,25,.94);border:1px solid rgba(137,204,114,.24);border-radius:24px;padding:34px 32px 30px;box-shadow:0 30px 90px rgba(0,0,0,.55);position:relative;overflow:hidden;}
-.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--mint));}
-.login-brand{font-family:var(--display);font-size:42px;line-height:1;color:var(--off);letter-spacing:.01em;}
-.login-brand span{color:var(--accent);}
-.login-sub{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gray);margin-top:8px;margin-bottom:28px;}
-.login-form{display:flex;flex-direction:column;gap:14px;}
-.login-form label{display:flex;flex-direction:column;gap:6px;}
-.login-form label span{font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--accent);font-weight:500;}
-.login-form input{height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg-3);color:var(--off);font:400 15px var(--grotesk);padding:0 14px;outline:none;transition:border-color .18s,box-shadow .18s;}
-.login-form input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(137,204,114,.12);}
-.login-form button{height:48px;border:0;border-radius:12px;background:var(--accent);color:#10210c;font:700 12px var(--grotesk);letter-spacing:.22em;text-transform:uppercase;cursor:pointer;margin-top:4px;transition:filter .18s,transform .18s;}
-.login-form button:hover{filter:brightness(1.08);transform:translateY(-1px);}
-.login-error{min-height:16px;font-size:12px;color:#ff8b86;}
 .top-actions{display:flex;align-items:center;gap:12px;}
-.btn-logout{background:transparent;border:1px solid var(--line);color:var(--gray);font-family:var(--grotesk);font-size:10px;letter-spacing:.18em;text-transform:uppercase;padding:8px 10px;border-radius:9px;cursor:pointer;transition:all .2s;}
-.btn-logout:hover{border-color:var(--accent);color:var(--accent);}
 /* HOTMART-LIKE DATE RANGE */
 .hm-period{position:relative;}
 .period-trigger{height:38px;background:var(--bg-3);}
@@ -287,25 +254,7 @@ body:not(.auth-pending) .login-screen{display:none;}
 @media(max-width:600px){.hm-period-dd{width:calc(100vw - 32px);min-width:0;left:0;}.hm-date-display{font-size:14px}.hm-day{height:32px;font-size:15px}.hm-actions button{font-size:16px}.hm-month-pill{font-size:16px;gap:18px}}
 </style>
 </head>
-<body class="auth-pending">
-<div class="login-screen" id="loginScreen" aria-label="Tela de acesso dotb">
-  <div class="login-card">
-    <div class="login-brand">dot<span>b</span></div>
-    <div class="login-sub">Performance Dashboard</div>
-    <form id="loginForm" class="login-form" autocomplete="off">
-      <label>
-        <span>Login</span>
-        <input id="loginUser" type="text" placeholder="admin" autocomplete="username" autofocus>
-      </label>
-      <label>
-        <span>Senha</span>
-        <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
-      </label>
-      <div class="login-error" id="loginError" role="alert"></div>
-      <button type="submit">Entrar</button>
-    </form>
-  </div>
-</div>
+<body>
 <div class="shell">
   <aside class="sidebar">
     <div>
@@ -320,7 +269,6 @@ body:not(.auth-pending) .login-screen{display:none;}
       <button class="nav-item" data-target="table-sec"><span class="nav-dot"></span>Criativos</button>
       <button class="nav-item" data-target="prod-breakdown-sec"><span class="nav-dot"></span>Vendas por produto</button>
       <button class="nav-item" data-target="origin-sec"><span class="nav-dot"></span>Origens de vendas</button>
-      <button class="nav-item" data-target="funnel-phm-sec"><span class="nav-dot"></span>Funil PHM</button>
     </nav>
     <div class="sb-foot">
       <div class="sb-foot-lbl">Última atualização</div>
@@ -333,7 +281,7 @@ body:not(.auth-pending) .login-screen{display:none;}
         <div class="page-eyebrow">Performance Dashboard</div>
         <h1>dot<span style="color:var(--accent)">b</span></h1>
       </div>
-      <div class="top-actions"><div class="ts" id="tsNow">—</div><button class="btn-logout" id="btnLogout" type="button">Sair</button></div>
+      <div class="top-actions"><div class="ts" id="tsNow">—</div></div>
     </div>
     <!-- FILTERS -->
     <div class="filter-bar">
@@ -580,13 +528,6 @@ body:not(.auth-pending) .login-screen{display:none;}
         </table>
       </div>
     </div>
-    <!-- FUNNEL PHM -->
-    <div class="section" id="funnel-phm-sec">
-      <div class="section-head"><h2 class="section-title">Funil <em>PHM</em></h2><span class="section-tag">Lead PHM → Plano Head de Marketing → Full Stack Marketing · cruzamento por e-mail (approved/completed)</span></div>
-      <div class="chart-card">
-        <div class="phm-funnel" id="phmFunnel"></div>
-      </div>
-    </div>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -607,11 +548,9 @@ const URLS = {
   // Fonte oficial para KPIs, gráfico, produtos e tabela: aba Hotmart (gid 721086669)
   // Esta aba contém as colunas Sales History Recurrency Number e Sales History Offer Payment Mode.
   hotmart:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv',
-  phm:         'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=2130889671&single=true&output=csv',
-  // Mesma aba Hotmart também alimenta o Funil PHM, evitando divergência de cabeçalhos.
   hotmartFull: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ5_gpUKxxQUPHcGurMH8JuXJMP1pCeuwgbZ0yilvbStLQdFXEIFyTwCSpO_z8oS50z5TOpktb6W6G5/pub?gid=721086669&single=true&output=csv'
 };
-let RAW = { meta: [], hotmart: [], phm: [], hotmartFull: [] };
+let RAW = { meta: [], hotmart: [], hotmartFull: [] };
 let COLS = {}; // detected column names
 let DATE_MIN='', DATE_MAX='';
 let DP={viewDate:null,draftFrom:'',draftTo:'',draftPreset:'30'};
@@ -641,14 +580,7 @@ const COL_OVERRIDE = {
   hotPaymentMode:'Sales History Offer Payment Mode', // assinatura usa SUBSCRIPTION e não segue a regra de Recurrency
   // Hotmart-PHM também passa a alimentar a QTD global de vendas únicas.
   hotFullDate:'', hotFullDateBR:'', hotFullProd:'', hotFullStatus:'', hotFullValue:'',
-  hotFullEmail:'', hotFullPhone:'', hotFullTxnId:'', hotFullBuyer:'', hotFullRecurrency:'Sales History Recurrency Number', hotFullPaymentMode:'Sales History Offer Payment Mode',
-  phmEmail:'', phmPhone:''
-};
-// Palavras-chave (minúsculas) que identificam cada produto no funil PHM.
-// O nome do produto na Hotmart só precisa CONTER uma destas palavras.
-const PHM_PRODUCTS = {
-  phm:  ['plano head de marketing','head de marketing','plano head','head mkt','phm'],
-  full: ['full stack marketing','full stack','fullstack','formação full','formacao full','full-stack']
+  hotFullEmail:'', hotFullPhone:'', hotFullTxnId:'', hotFullBuyer:'', hotFullRecurrency:'Sales History Recurrency Number', hotFullPaymentMode:'Sales History Offer Payment Mode'
 };
 // Ofertas (Sales History Offer Code) que já abrem DESMARCADAS no filtro "Oferta (Hotmart)".
 const OFFER_DEFAULT_OFF = ['8b2sprx3']; // FSM
@@ -1116,7 +1048,6 @@ function offsetDay(d,n){ const c=new Date(d); c.setDate(c.getDate()+n); return c
 function detectColumns(){
   const mh=RAW.meta[0]?Object.keys(RAW.meta[0]):[];
   const hh=RAW.hotmart[0]?Object.keys(RAW.hotmart[0]):[];
-  const ph=RAW.phm[0]?Object.keys(RAW.phm[0]):[];
   const fh=RAW.hotmartFull[0]?Object.keys(RAW.hotmartFull[0]):[];
   COLS.metaDate    = colFind(mh,[/^dia$/,/^date$/,/^data$/,/reporting_start/,/^day$/,/dia/]);
   COLS.metaCamp    = colFind(mh,[/nome da campanha/,/campaign.?name/,/campanha/,/campaign/]);
@@ -1288,8 +1219,6 @@ function detectColumns(){
     /modo.*pagamento/,
     /forma.*pagamento/
   ]);
-  COLS.phmEmail    = colFind(ph,[/e-?mail/,/email/]);
-  COLS.phmPhone    = colFind(ph,[/phone/,/telefone/,/celular/,/whatsapp/,/ddd/,/tel\b/,/n[uú]mero/]);
   // Aplica overrides manuais
   Object.keys(COL_OVERRIDE).forEach(k=>{ if(COL_OVERRIDE[k]) COLS[k]=COL_OVERRIDE[k]; });
   // SALVA-VIDAS DO FATURAMENTO: se a coluna de valor detectada somar R$ 0,00 nas
@@ -1327,7 +1256,6 @@ function detectColumns(){
   console.log('[dotb] Coluna recorrência Hotmart-PHM:', COLS.hotFullRecurrency||'(não detectada)');
   console.log('[dotb] Coluna Offer Payment Mode Hotmart-PHM:', COLS.hotFullPaymentMode || '(não detectada)');
   console.log('[dotb] Cabeçalhos Hotmart (completo/PHM):', fh);
-  console.log('[dotb] Cabeçalhos PHM:', ph);
   // Cobertura de datas na Hotmart (Purchase Order Date + fallback Data BR)
   if(RAW.hotmart.length){
     let cash=0, purch=0, none=0;
@@ -1415,14 +1343,11 @@ async function loadData(){
     // Carrega em sequência para o fallback GViz funcionar com segurança em arquivo local.
     const m  = await fetchCSV(URLS.meta);
     const h  = await fetchCSV(URLS.hotmart);
-    const p  = await fetchCSV(URLS.phm);
     const hf = await fetchCSV(URLS.hotmartFull);
     RAW.meta=cleanRows(csvToObjects(m),'Meta');
     RAW.hotmart=cleanRows(csvToObjects(h),'Hotmart');
-    RAW.phm=cleanRows(csvToObjects(p),'PHM');
     RAW.hotmartFull=cleanRows(csvToObjects(hf),'Hotmart-PHM');
     console.log('%c[dotb] Fonte Hotmart KPIs/tabela: Hotmart (gid 565168335)','color:#89cc72;font-weight:bold');
-    console.log('%c[dotb] Fonte Hotmart Funil PHM: Hotmart-PHM (gid 721086669)','color:#89cc72;font-weight:bold');
     detectColumns();
     setStatus('ok','Ao vivo · '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
     setText('sbDate', new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}));
@@ -2199,8 +2124,6 @@ function render(){
   renderProductBreakdown(f);
   // Origens de vendas (SCK/SRC da Hotmart agrupado por canal)
   renderOrigins(f);
-  // Funil PHM
-  renderPHM();
 }
 // ═══ CHART ═══
 function renderChart(byDay){
@@ -2374,120 +2297,6 @@ function updateSortIndicators(){
     if(car) car.textContent = active ? (SORT.dir==='asc'?'▲':'▼') : '';
   });
 }
-// ═══ FUNIL PHM ═══
-function renderPHM(){
-  const wrap=document.getElementById('phmFunnel');
-  if(!RAW.phm.length){ wrap.innerHTML='<div class="empty"><div class="big">∅</div>Sem dados de Lead PHM</div>'; return; }
-  if(!RAW.hotmartFull.length){ wrap.innerHTML='<div class="empty"><div class="big">∅</div>Sem dados da Hotmart-PHM</div>'; return; }
-  const norm = s => String(s||'').toLowerCase().trim();
-  const matchKw = (name,kws) => kws.some(k=>name.includes(k));
-  // Fonte do cruzamento PHM: aba Hotmart específica (gid 721086669), conforme solicitado.
-  const src = RAW.hotmartFull;
-  const cEmail  = COLS.hotFullEmail;
-  const cProd   = COLS.hotFullProd;
-  const cStatus = COLS.hotFullStatus;
-  // 1) Indexa compradores da Hotmart-PHM SOMENTE com status approved/completed.
-  // Cruzamento feito exclusivamente por e-mail: Sales History Buyer Email.
-  const phmEmails=new Set();
-  const fullEmails=new Set();
-  const allProds=new Set();
-  let buyersApproved=0;
-  src.forEach(r=>{
-    const sale=sourceSaleFields(r,'full');
-    const st=sale.status;
-    if(!['approved','completed'].includes(st)) return;
-    // No funil, também respeitamos a regra global de Recurrency vazio/1, com exceção para SUBSCRIPTION.
-    if(!isUniqueSourceSale(sale)) return;
-    buyersApproved++;
-    const email=norm(sale.email || (cEmail ? r[cEmail] : ''));
-    const prod=norm(sale.product || (cProd ? r[cProd] : ''));
-    if(prod) allProds.add(prod);
-    if(!email) return;
-    if(matchKw(prod,PHM_PRODUCTS.phm))  phmEmails.add(email);
-    if(matchKw(prod,PHM_PRODUCTS.full)) fullEmails.add(email);
-  });
-  // 2) Base do funil: leads PHM únicos por e-mail.
-  const leadEmails=new Set();
-  let leadRows=0, leadRowsWithEmail=0;
-  RAW.phm.forEach(r=>{
-    leadRows++;
-    const email=norm(r[COLS.phmEmail]);
-    if(email){ leadRowsWithEmail++; leadEmails.add(email); }
-  });
-  // 3) Fluxo sequencial:
-  // Lead PHM → comprou Plano Head de Marketing → comprou Full Stack Marketing.
-  // O último estágio conta apenas quem era lead PHM E também comprou PHM E Full Stack.
-  let boughtPHM=0, boughtFullAfterPHM=0;
-  leadEmails.forEach(email=>{
-    const hasPHM=phmEmails.has(email);
-    const hasFull=fullEmails.has(email);
-    if(hasPHM) boughtPHM++;
-    if(hasPHM && hasFull) boughtFullAfterPHM++;
-  });
-  const leads=leadEmails.size;
-  const prodList=[...allProds];
-  // ── Diagnóstico ──
-  console.log('%c[dotb] ── Funil PHM ──','color:#89cc72;font-weight:bold');
-  console.log('[dotb] Fonte de compras: Hotmart-PHM (gid 721086669)');
-  console.log('[dotb] Colunas usadas → lead email:',COLS.phmEmail,'| buyer email:',cEmail,'| produto:',cProd,'| status:',cStatus);
-  console.log('[dotb] Linhas Lead PHM:',leadRows,'| linhas com e-mail:',leadRowsWithEmail,'| leads únicos por e-mail:',leads);
-  console.log('[dotb] Linhas Hotmart approved/completed e 1ª parcela:',buyersApproved);
-  console.log('[dotb] Compradores Plano Head de Marketing (e-mail único):',phmEmails.size,'| Full Stack Marketing (e-mail único):',fullEmails.size);
-  console.log('[dotb] Leads que compraram PHM:',boughtPHM,'| Leads que compraram PHM + Full Stack:',boughtFullAfterPHM);
-  console.log('[dotb] Produtos encontrados na Hotmart-PHM:',prodList);
-  if(!cEmail || !cProd || !cStatus) console.warn('[dotb] ⚠ Verifique os cabeçalhos da Hotmart-PHM. Esperado: Sales History Buyer Email, Sales History Product Name e Sales History Transaction Status.');
-  if(buyersApproved===0) console.warn('[dotb] ⚠ Nenhuma compra approved/completed indexada na Hotmart-PHM.');
-  if(leads===0) console.warn('[dotb] ⚠ Nenhum lead PHM com e-mail — verifique COLS.phmEmail.');
-  // ── Render ──
-  const okPHM  = matchKw([...allProds].join(' || '),PHM_PRODUCTS.phm);
-  const okFull = matchKw([...allProds].join(' || '),PHM_PRODUCTS.full);
-  const steps=[
-    {lbl:'Lead PHM', sub:leads+' leads únicos por e-mail', n:leads, bg:'#23291f', bd:'#89cc72'},
-    {lbl:'Comprou Plano Head de Marketing', sub:okPHM?'✓ produto localizado':'⚠ ajuste PHM_PRODUCTS.phm', n:boughtPHM, bg:'#2f5a36', bd:'#89cc72'},
-    {lbl:'Comprou Full Stack Marketing', sub:okFull?'✓ produto localizado':'⚠ ajuste PHM_PRODUCTS.full', n:boughtFullAfterPHM, bg:'#89cc72', bd:'#4dffa7'}
-  ];
-  const max=steps[0].n||1;
-  wrap.innerHTML=steps.map((s,i)=>{
-    const w=Math.max(28,Math.round((s.n/max)*100));
-    const rate=i>0&&steps[0].n>0?((s.n/steps[0].n)*100).toFixed(1).replace('.',',')+'% do topo':'';
-    const arrow=i<steps.length-1?'<div class="phm-arrow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 4v15M12 19l-4-4M12 19l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>':'';
-    return '<div class="phm-step">'+
-      '<div class="phm-side l">'+(i>0?'<span class="phm-rate">'+rate+'</span>':'')+'</div>'+
-      '<div class="phm-bar-wrap"><div class="phm-bar" style="width:'+w+'%;background:'+s.bg+';border:1px solid '+s.bd+';"><div style="text-align:center;padding:0 12px;"><div class="phm-bar-lbl">'+s.lbl.toUpperCase()+'</div><div class="phm-bar-num">'+fmtN(s.n)+'</div></div></div></div>'+
-      '<div class="phm-side r">'+s.sub+'</div>'+
-    '</div>'+arrow;
-  }).join('');
-}
-// ═══ LOGIN ═══
-function initLogin(){
-  const form=document.getElementById('loginForm');
-  const error=document.getElementById('loginError');
-  const user=document.getElementById('loginUser');
-  const pass=document.getElementById('loginPass');
-  const unlock=()=>document.body.classList.remove('auth-pending');
-  if(sessionStorage.getItem('dotb_auth')==='ok') unlock();
-  if(form){
-    form.addEventListener('submit',e=>{
-      e.preventDefault();
-      if((user.value||'').trim()==='admin' && (pass.value||'')==='@Mkt2026'){
-        sessionStorage.setItem('dotb_auth','ok');
-        error.textContent='';
-        unlock();
-      }else{
-        error.textContent='Login ou senha inválidos.';
-        pass.value='';
-        pass.focus();
-      }
-    });
-  }
-  const logout=document.getElementById('btnLogout');
-  if(logout) logout.addEventListener('click',()=>{
-    sessionStorage.removeItem('dotb_auth');
-    document.body.classList.add('auth-pending');
-    if(pass) pass.value='';
-    if(user) user.focus();
-  });
-}
 // ═══ EVENTS ═══
 function initEvents(){
   document.getElementById('btnApply').addEventListener('click',render);
@@ -2567,7 +2376,6 @@ function initEvents(){
 }
 // ═══ BOOT ═══
 document.addEventListener('DOMContentLoaded',async()=>{
-  initLogin();
   initDropdowns();
   initEvents();
   await loadData();
